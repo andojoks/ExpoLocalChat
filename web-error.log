@@ -1,0 +1,14 @@
+Error: listen EADDRINUSE: address already in use :::8081
+Error: listen EADDRINUSE: address already in use :::8081
+    at Server.setupListenHandle [as _listen2] (node:net:1948:16)
+    at listenInCluster (node:net:2005:12)
+    at Server.listen (node:net:2110:7)
+    at C:\Users\andoj\Documents\QUESTIONBANK_CHAT\QuestionBankChat\node_modules\expo\node_modules\@expo\cli\build\src\start\server\metro\runServer-fork.js:144:20
+    at new Promise (<anonymous>)
+    at runServer (C:\Users\andoj\Documents\QUESTIONBANK_CHAT\QuestionBankChat\node_modules\expo\node_modules\@expo\cli\build\src\start\server\metro\runServer-fork.js:140:12)
+    at async replaceMetroFileMap (C:\Users\andoj\Documents\QUESTIONBANK_CHAT\QuestionBankChat\node_modules\expo\node_modules\@expo\cli\build\src\start\server\metro\createFileMap-fork.js:191:20)
+    at async instantiateMetroAsync (C:\Users\andoj\Documents\QUESTIONBANK_CHAT\QuestionBankChat\node_modules\expo\node_modules\@expo\cli\build\src\start\server\metro\instantiateMetro.js:401:51)
+    at async MetroBundlerDevServer.startImplementationAsync (C:\Users\andoj\Documents\QUESTIONBANK_CHAT\QuestionBankChat\node_modules\expo\node_modules\@expo\cli\build\src\start\server\metro\MetroBundlerDevServer.js:929:82)
+    at async MetroBundlerDevServer.startAsync (C:\Users\andoj\Documents\QUESTIONBANK_CHAT\QuestionBankChat\node_modules\expo\node_modules\@expo\cli\build\src\start\server\BundlerDevServer.js:124:24)
+    at async DevServerManager.startAsync (C:\Users\andoj\Documents\QUESTIONBANK_CHAT\QuestionBankChat\node_modules\expo\node_modules\@expo\cli\build\src\start\server\DevServerManager.js:213:13)
+    at async startAsync (C:\Users\andoj\Documents\QUESTIONBANK_CHAT\QuestionBankChat\node_modules\expo\node_modules\@expo\cli\build\src\start\startAsync.js:163:5)

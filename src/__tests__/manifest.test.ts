@@ -1,0 +1,3 @@
+import {describe,expect,it} from '@jest/globals';
+import {validateManifest} from '../ai/embeddings/model-manager';
+describe('compressed model manifest',()=>{it('accepts a safe ZIP bundle',()=>expect(validateManifest({id:'embeddinggemma',version:'1',archive:'model.zip',archiveBytes:100,entryPoint:'onnx/model.onnx'})).toBe(true));it('rejects traversal and raw delivery',()=>{expect(validateManifest({id:'x',version:'1',archive:'model.zip',archiveBytes:100,entryPoint:'../model.onnx'})).toBe(false);expect(validateManifest({id:'x',version:'1',archive:'model.onnx',archiveBytes:100,entryPoint:'model.onnx'})).toBe(false)})});

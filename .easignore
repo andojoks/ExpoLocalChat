@@ -1,0 +1,29 @@
+# Dependencies are installed by EAS from package-lock.json.
+node_modules/
+
+# Local Expo and build outputs.
+.expo/
+.eas-inspect/
+dist/
+web-build/
+android/
+ios/
+
+# Local logs and caches.
+*.log
+*.tsbuildinfo
+.metro-health-check*
+
+# Editor and assistant scratch files.
+.vscode/
+.claude/
+CLAUDE.md
+AGENTS.md
+
+# Model binaries must stay outside the app project and be downloaded at runtime.
+models/
+*.gguf
+*.onnx
+*.tflite
+*.task
+*.zip
