@@ -26,7 +26,7 @@ export function validateManifest(value: unknown): value is ModelManifest {
     typeof m.archiveBytes === 'number' &&
     m.archiveBytes > 0 &&
     typeof m.entryPoint === 'string' &&
-    !m.entryPoint.includes('..')
+    m.entryPoint.indexOf('..') < 0
   );
 }
 async function fetchManifest() {
@@ -108,7 +108,7 @@ export async function downloadModel(onProgress: (s: EmbeddingStatus) => void) {
   for (let i = 0; i < files.length; i++) {
     const file = files[i],
       safeName = file.name.replace(/\\/g, '/').replace(/^\.\//, '');
-    if (safeName.startsWith('/') || safeName.split('/').includes('..'))
+    if (safeName.startsWith('/') || safeName.split('/').indexOf('..') >= 0)
       throw Error('Unsafe ZIP entry');
     const bytes = await file.async('uint8array');
     await cache.put(

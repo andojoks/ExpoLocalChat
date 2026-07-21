@@ -6,7 +6,7 @@ let current = DEFAULT_MODEL_SERVER_URL;
 export function normalizeServerUrl(value: string) {
   const normalized = value.trim().replace(/\/+$/, '');
   const parsed = new URL(normalized);
-  if (!['http:', 'https:'].includes(parsed.protocol))
+  if (['http:', 'https:'].indexOf(parsed.protocol) < 0)
     throw Error('Server URL must start with http:// or https://');
   return normalized;
 }

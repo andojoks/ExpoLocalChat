@@ -1,10 +1,15 @@
-import type { ChatModel, TutorTurn } from './chat-model';
-import { cleanGeneratedText, cleanTokenDelta } from './output-sanitizer';
+import type { ChatModel, GenerationOptions, TutorTurn } from './chat-model';
+
 const MODEL = 'onnx-community/Qwen2.5-0.5B-Instruct';
 const CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.0.1';
 const runtimeImport = (url: string) =>
   (new Function('url', 'return import(url)') as (url: string) => Promise<any>)(url);
 let transformers: any;
+
+export function getChatGpuStatus() {
+  return null;
+}
+
 export function createChatModel(): ChatModel {
   let generator: any, initializing: Promise<void> | undefined;
   return {
@@ -18,36 +23,47 @@ export function createChatModel(): ChatModel {
       })();
       return initializing;
     },
-    async generate(turns: TutorTurn[], onToken) {
+    async generate(turns: TutorTurn[], onToken, options: GenerationOptions = {}) {
       await this.initialize();
+      const effectiveTurns =
+        options.jsonSchema != null
+          ? [
+              ...turns,
+              {
+                role: 'user' as const,
+                content:
+                  'Respond with valid JSON only that matches the required schema. No markdown fences, no prose outside JSON.',
+              },
+            ]
+          : turns;
       const prompt =
-        turns.map((turn) => `<|im_start|>${turn.role}\n${turn.content}<|im_end|>`).join('\n') +
-        '\n<|im_start|>assistant\n';
-      let raw = '',
-        clean = '';
-      const options: any = {
-        max_new_tokens: 280,
-        temperature: 0.25,
-        do_sample: true,
+        effectiveTurns
+          .map((turn) => `<|im_start|>${turn.role}\n${turn.content}<|im_end|>`)
+          .join('\n') + '\n<|im_start|>assistant\n';
+      let raw = '';
+      const temperature = options.temperature ?? (options.jsonSchema ? 0 : 0.25);
+      const maxNewTokens = options.maxTokens ?? (options.jsonSchema ? 260 : 280);
+      const genOptions: any = {
+        max_new_tokens: maxNewTokens,
+        temperature,
+        do_sample: temperature > 0,
         repetition_penalty: 1.08,
         return_full_text: false,
       };
       if (onToken) {
         transformers ||= await runtimeImport(CDN);
-        options.streamer = new transformers.TextStreamer(generator.tokenizer, {
+        genOptions.streamer = new transformers.TextStreamer(generator.tokenizer, {
           skip_prompt: true,
           skip_special_tokens: true,
           callback_function: (text: string) => {
             raw += text;
-            const next = cleanTokenDelta(raw, clean, turns);
-            clean = next.clean;
-            if (next.delta) onToken(next.delta);
+            onToken(text);
           },
         });
       }
-      const output: any = await generator(prompt, options),
-        generated = output?.[0]?.generated_text;
-      return cleanGeneratedText(typeof generated === 'string' ? generated : raw, turns);
+      const output: any = await generator(prompt, genOptions);
+      const generated = output?.[0]?.generated_text;
+      return (typeof generated === 'string' ? generated : raw).trim();
     },
   };
 }

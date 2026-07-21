@@ -27,7 +27,6 @@
     "@expo/ui": "~57.0.7",
     "@expo/vector-icons": "^15.0.2",
     "@huggingface/transformers": "^4.2.0",
-    "@langchain/core": "^1.2.3",
     "cors": "^2.8.6",
     "expo": "~57.0.7",
     "expo-build-properties": "^57.0.6",
@@ -66,7 +65,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "@types/jest": "^30.0.0",
+    "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~57.0.0",
@@ -77,5 +76,6 @@
     "prettier": "^3.9.6",
     "typescript": "~6.0.3"
   },
-  "private": true
+  "private": true,
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

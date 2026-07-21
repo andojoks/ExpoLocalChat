@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "questionbankchat",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.questionbankchat.app",
       "icon": "./assets/expo.icon"
@@ -21,7 +20,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "output": "static",

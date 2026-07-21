@@ -26,7 +26,7 @@ export function validateManifest(value: unknown): value is ModelManifest {
     typeof m.archiveBytes === 'number' &&
     m.archiveBytes > 0 &&
     typeof m.entryPoint === 'string' &&
-    !m.entryPoint.includes('..')
+    m.entryPoint.indexOf('..') < 0
   );
 }
 async function fetchManifest() {
@@ -83,7 +83,7 @@ export async function downloadModel(onProgress: (s: EmbeddingStatus) => void) {
     ),
     result = await task.downloadAsync();
   if (!result) throw Error('Download interrupted');
-  onProgress({ kind: 'downloading', progress: 0.82, label: 'Unpacking model…' });
+  onProgress({ kind: 'downloading', progress: 0.82, label: 'Unpacking modelâ€¦' });
   await extractZip(result.uri, directory, (p) =>
     onProgress({
       kind: 'downloading',
@@ -107,7 +107,7 @@ async function extractZip(uri: string, destination: string, progress: (value: nu
   for (let index = 0; index < files.length; index++) {
     const file = files[index],
       safeName = file.name.replace(/\\/g, '/');
-    if (safeName.startsWith('/') || safeName.split('/').includes('..'))
+    if (safeName.startsWith('/') || safeName.split('/').indexOf('..') >= 0)
       throw Error('Unsafe ZIP entry');
     const target = destination + safeName,
       parent = target.slice(0, target.lastIndexOf('/') + 1);
@@ -122,7 +122,7 @@ function readyStatus(manifest: ModelManifest): EmbeddingStatus {
   return {
     kind: manifest.mock ? 'fallback' : 'ready',
     progress: 1,
-    label: manifest.mock ? 'Mock model ready · ZIP unpacked' : 'EmbeddingGemma ready',
+    label: manifest.mock ? 'Mock model ready Â· ZIP unpacked' : 'EmbeddingGemma ready',
   };
 }
 function formatBytes(n: number) {
