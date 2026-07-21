@@ -9,6 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest --runInBand --forceExit",
+    "format": "prettier --write .",
+    "lint": "prettier --write . && expo lint --fix",
     "typecheck": "tsc --noEmit",
     "export:web": "expo export --platform web",
     "build:inspect": "npx -y eas-cli@latest build:inspect --platform android --profile development --stage archive --output .eas-inspect --force",
@@ -66,8 +68,13 @@
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.2.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
     "jest": "^29.7.0",
     "jest-expo": "^57.0.2",
+    "prettier": "^3.9.6",
     "typescript": "~6.0.3"
   },
   "private": true

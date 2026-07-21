@@ -1,0 +1,10 @@
+node_modules
+.expo
+.eas-inspect
+dist
+web-build
+android
+ios
+coverage
+package-lock.json
+*.min.js
