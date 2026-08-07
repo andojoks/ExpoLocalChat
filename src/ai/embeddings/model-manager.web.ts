@@ -1,6 +1,7 @@
-import { getServerUrl } from '@/config/server-config';
+import { getApiBaseUrl } from '@/config/api';
 import JSZip from 'jszip';
 import type { EmbeddingStatus } from './embedding';
+
 export type ModelManifest = {
   id: string;
   version: string;
@@ -13,8 +14,12 @@ export type ModelManifest = {
   sha256?: string;
   mock?: boolean;
 };
-const KEY = 'questionbankchat:model-install';
+
+const INSTALL_KEY = 'questionbankchat:model-install';
+/** Full manifest cached at download time — getModelState never re-fetches when installed. */
+const MANIFEST_KEY = 'questionbankchat:embedding-manifest';
 const CACHE = 'questionbankchat-embeddinggemma-v1';
+
 export function validateManifest(value: unknown): value is ModelManifest {
   if (!value || typeof value !== 'object') return false;
   const m = value as Record<string, unknown>;
@@ -29,13 +34,31 @@ export function validateManifest(value: unknown): value is ModelManifest {
     m.entryPoint.indexOf('..') < 0
   );
 }
-async function fetchManifest() {
-  const response = await fetch(`${getServerUrl()}/models/embeddinggemma/onnx-manifest.json`);
+
+async function fetchRemoteManifest() {
+  const response = await fetch(`${getApiBaseUrl()}/models/embeddinggemma/onnx-manifest.json`);
   if (!response.ok) throw Error(`Manifest request failed (${response.status})`);
   const manifest: unknown = await response.json();
   if (!validateManifest(manifest) || manifest.mock) throw Error('Full model manifest required');
   return manifest;
 }
+
+function readLocalManifest(): ModelManifest | null {
+  try {
+    const raw = globalThis.localStorage?.getItem(MANIFEST_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return validateManifest(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalManifest(manifest: ModelManifest) {
+  globalThis.localStorage?.setItem(MANIFEST_KEY, JSON.stringify(manifest));
+  globalThis.localStorage?.setItem(INSTALL_KEY, installId(manifest));
+}
+
 const installId = (m: ModelManifest) => `${m.id}@${m.version}`;
 const cacheUrl = (name: string) =>
   `${globalThis.location?.origin || 'https://questionbank.local'}/__models__/embeddinggemma/${name.replace(/^\.\//, '')}`;
@@ -44,38 +67,59 @@ const readyStatus = (): EmbeddingStatus => ({
   progress: 1,
   label: 'EmbeddingGemma 300M - full ONNX model ready',
 });
+
+/** Prefer the cached manifest + Cache Storage; only hit the server when not installed. */
 export async function getModelState(): Promise<{
   status: EmbeddingStatus;
   path?: string;
   manifest?: ModelManifest;
 }> {
+  const local = readLocalManifest();
+  if (local) {
+    try {
+      const cache = await caches.open(CACHE);
+      const entry = await cache.match(cacheUrl(local.entryPoint));
+      const saved = globalThis.localStorage?.getItem(INSTALL_KEY);
+      if (saved === installId(local) && entry) {
+        return { status: readyStatus(), path: cacheUrl(local.entryPoint), manifest: local };
+      }
+    } catch {
+      // fall through
+    }
+  }
+
   try {
-    const manifest = await fetchManifest(),
-      saved = globalThis.localStorage?.getItem(KEY),
-      cache = await caches.open(CACHE),
-      entry = await cache.match(cacheUrl(manifest.entryPoint));
-    return saved === installId(manifest) && !!entry
-      ? { status: readyStatus(), path: cacheUrl(manifest.entryPoint), manifest }
-      : {
-          status: {
-            kind: 'missing',
-            progress: 0,
-            label: `Download ${(manifest.archiveBytes / 1e6).toFixed(0)} MB model ZIP`,
-          },
-          manifest,
-        };
+    const manifest = await fetchRemoteManifest();
+    return {
+      status: {
+        kind: 'missing',
+        progress: 0,
+        label: `Download ${(manifest.archiveBytes / 1e6).toFixed(0)} MB model ZIP`,
+      },
+      manifest,
+    };
   } catch {
-    return { status: { kind: 'missing', progress: 0, label: 'Full model server unavailable' } };
+    return {
+      status: {
+        kind: 'missing',
+        progress: 0,
+        label: local
+          ? 'Cached embedding model incomplete — re-download while online'
+          : 'Download models (model server required once)',
+      },
+      manifest: local || undefined,
+    };
   }
 }
+
 export async function downloadModel(onProgress: (s: EmbeddingStatus) => void) {
-  const manifest = await fetchManifest();
+  const manifest = await fetchRemoteManifest();
   onProgress({
     kind: 'downloading',
     progress: 0.02,
     label: `Downloading full model ZIP - ${(manifest.archiveBytes / 1e6).toFixed(0)} MB`,
   });
-  const response = await fetch(`${getServerUrl()}/models/embeddinggemma/${manifest.archive}`);
+  const response = await fetch(`${getApiBaseUrl()}/models/embeddinggemma/${manifest.archive}`);
   if (!response.ok) throw Error(`Archive request failed (${response.status})`);
   const reader = response.body?.getReader();
   let received = 0;
@@ -128,10 +172,11 @@ export async function downloadModel(onProgress: (s: EmbeddingStatus) => void) {
   }
   const entry = await cache.match(cacheUrl(manifest.entryPoint));
   if (!entry) throw Error(`ZIP did not contain ${manifest.entryPoint}`);
-  globalThis.localStorage?.setItem(KEY, installId(manifest));
+  writeLocalManifest(manifest);
   onProgress(readyStatus());
   return { path: cacheUrl(manifest.entryPoint), manifest };
 }
+
 function concat(chunks: Uint8Array[], length: number) {
   const output = new Uint8Array(length);
   let offset = 0;
@@ -141,6 +186,7 @@ function concat(chunks: Uint8Array[], length: number) {
   }
   return output;
 }
+
 function contentType(name: string) {
   if (name.endsWith('.json')) return 'application/json';
   if (name.endsWith('.onnx')) return 'application/octet-stream';

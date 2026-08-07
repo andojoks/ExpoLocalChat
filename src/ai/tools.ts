@@ -1,320 +1,461 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
+import { z, type ZodType } from 'zod';
 import { cosine, type EmbeddingProvider } from '@/ai/embeddings/embedding';
-import { getEmbedding, getQuestion, getQuestions, saveEmbedding } from '@/db/database';
+import {
+  getQuestionTree,
+  listCategories,
+  listMessageEmbeddings,
+  listPaperYears,
+  listPapers,
+  listQuestionsForPaper,
+  listSectionsForPaper,
+  listSubjects,
+  keywordSearchExamBank,
+  normalizeCategoryCode,
+  reindexEntityEmbeddings,
+  searchEntitiesByEmbedding,
+} from '@/db/database';
+import type { ExamEntityLevel } from '@/domain/types';
+export { TOOL_NAMES, type QuestionToolName } from './tool-names';
+import type { QuestionToolName } from './tool-names';
 
-export type LocalTool = {
-  name: string;
+const pageFields = {
+  page: z.union([z.number(), z.string()]).optional(),
+  pageSize: z.union([z.number(), z.string()]).optional(),
+};
+
+const categorySchema = z.object({
+  category: z.string().optional().describe('GCE_OL, GCE_AL, OL, or AL'),
+});
+
+const subjectSchema = z.object({
+  category: z.string().optional(),
+  categoryCode: z.string().optional(),
+});
+
+const paperSchema = z.object({
+  category: z.string().optional(),
+  subject: z.string().optional().describe('Subject name or code'),
+  subjectCode: z.string().optional(),
+  year: z.union([z.number(), z.string()]).optional(),
+  paper: z.union([z.number(), z.string()]).optional(),
+});
+
+const sectionSchema = z.object({
+  paperId: z.string().describe('Paper id from list_papers'),
+});
+
+const yearsSchema = z.object({
+  category: z.string().optional(),
+  subject: z.string().optional(),
+  subjectCode: z.string().optional(),
+});
+
+const listQuestionsSchema = z.object({
+  ...pageFields,
+  paperId: z.string().optional(),
+  sectionId: z.string().optional(),
+  category: z.string().optional(),
+  subject: z.string().optional(),
+  subjectCode: z.string().optional(),
+  topic: z.string().optional(),
+  year: z.union([z.number(), z.string()]).optional(),
+  paper: z.union([z.number(), z.string()]).optional(),
+});
+
+const detailsSchema = z.object({
+  id: z.string().describe('Question id'),
+});
+
+const searchSchema = z.object({
+  query: z.string().describe('Natural language search'),
+  category: z.string().optional(),
+  subject: z.string().optional(),
+  subjectCode: z.string().optional(),
+  year: z.union([z.number(), z.string()]).optional(),
+  levels: z
+    .array(z.enum(['category', 'subject', 'paper', 'section', 'question']))
+    .optional(),
+  topK: z.union([z.number(), z.string()]).optional(),
+});
+
+const memorySchema = z.object({
+  query: z.string(),
+  conversationId: z.string(),
+  topK: z.union([z.number(), z.string()]).optional(),
+});
+
+export type ToolDef = {
+  name: QuestionToolName;
   description: string;
-  invoke(input: Record<string, unknown>): Promise<any>;
+  schema: ZodType;
+  execute: (args: Record<string, unknown>) => Promise<unknown>;
 };
 
-type ResolvedFilters = {
-  category?: 'OL' | 'AL';
-  subject?: string;
-  topic?: string;
-  year?: number;
-  paper?: number;
-  page: number;
-  pageSize: number;
-  resolvedFilters: Record<string, unknown>;
-};
+export type ToolRegistry = Record<QuestionToolName, ToolDef>;
 
-export function createQuestionTools(db: SQLiteDatabase, embeddings: EmbeddingProvider) {
-  const listQuestions: LocalTool = {
-    name: 'list_exam_questions',
-    description:
-      'List exact stored exam questions by live SQLite filters. Accepts natural category, subject, topic, year, paper, page, and pageSize.',
-    async invoke(input) {
-      const all = await getQuestions(db);
-      const filters = resolveFiltersFromCatalogue(all, input);
-      const rows = all
-        .filter((question) => matchesFilters(question, filters))
-        .sort(
-          (a, b) =>
-            numberValue(a.year) - numberValue(b.year) ||
-            numberValue(a.paper) - numberValue(b.paper) ||
-            numberValue(a.number) - numberValue(b.number),
-        );
-      return paginate(rows, filters, filters.resolvedFilters);
-    },
-  };
+const TOOL_CLIP = 1800;
+let reindexed = false;
 
-  const retrieveQuestions: LocalTool = {
-    name: 'search_exam_questions',
-    description:
-      'Semantic RAG search over stored question markdown, answers, explanations, topics, and tags. Use for fuzzy/misspelled/conceptual searches.',
-    async invoke(input) {
-      const all = await getQuestions(db);
-      const filters = resolveFiltersFromCatalogue(all, input);
-      const query = text(input.query) || catalogueQuery(input);
-      const queryVector = await embeddings.embedQuery(
-        query || 'Cameroon GCE past examination question',
-      );
-      const ranked: { question: any; score: number }[] = [];
-      for (const question of all) {
-        if (!matchesFilters(question, filters)) continue;
-        let vector = await getEmbedding(db, question.id);
-        if (!vector) {
-          vector = (
-            await embeddings.embedDocuments(
-              [questionSearchText(question)],
-              [questionSourceText(question)],
-            )
-          )[0];
-          await saveEmbedding(db, question.id, vector);
-        }
-        ranked.push({ question, score: cosine(queryVector, vector) });
-      }
-      ranked.sort((a, b) => b.score - a.score);
-      return paginate(
-        ranked.map(({ question, score }) => ({ ...question, score: Number(score.toFixed(3)) })),
-        filters,
-        { ...filters.resolvedFilters, semanticQuery: query },
-      );
-    },
-  };
-
-  const getQuestionDetails: LocalTool = {
-    name: 'get_question_details',
-    description:
-      'Load one exact stored question with answer markdown, hints, and authored explanation by id.',
-    async invoke(input) {
-      const question = await getQuestion(db, text(input.id));
-      return question || { missing: true, id: text(input.id) };
-    },
-  };
-
-  const inspectCatalogue: LocalTool = {
-    name: 'inspect_exam_catalogue',
-    description:
-      'Inspect available categories, subjects, topics, years, and papers from SQLite. Use for availability and catalogue discovery.',
-    async invoke(input) {
-      const all = await getQuestions(db);
-      const filters = resolveFiltersFromCatalogue(all, input);
-      let rows = all.filter((question) => matchesFilters(question, filters));
-      let broadened = false;
-      if (!rows.length && all.length && hasActiveFilters(filters)) {
-        rows = all;
-        broadened = true;
-      }
-      return {
-        count: rows.length,
-        categories: unique(rows.map((q) => q.category)),
-        subjects: unique(rows.map((q) => q.subject)),
-        topics: unique(rows.map((q) => q.topic)),
-        years: unique(rows.map((q) => q.year))
-          .map(Number)
-          .sort((a, b) => a - b),
-        papers: unique(
-          rows.map(
-            (q) =>
-              `${text(q.year)} ${text(q.category)} ${text(q.subject) || 'Unknown subject'} Paper ${
-                text(q.paper) || '?'
-              }`,
-          ),
-        ).slice(0, 40),
-        resolvedFilters: filters.resolvedFilters,
-        broadened,
-        note: broadened
-          ? 'No rows matched the requested filters; showing the full catalogue instead.'
-          : undefined,
-      };
-    },
-  };
-
-  return { listQuestions, retrieveQuestions, getQuestionDetails, inspectCatalogue };
+/** True for cheap in-process embedders that can reindex synchronously on first search. */
+function isFastEmbedder(embeddings: EmbeddingProvider) {
+  const name = (embeddings.name || '').toLowerCase();
+  return name.includes('fallback') || name.includes('hash') || name.includes('mock');
 }
 
-export type QuestionTools = ReturnType<typeof createQuestionTools>;
-export type QuestionToolKey = keyof QuestionTools;
-
-function resolveFiltersFromCatalogue(
-  questions: any[],
-  input: Record<string, unknown>,
-): ResolvedFilters {
-  const page = clampNumber(input.page, 1, 1, 9999);
-  const pageSize = clampNumber(input.pageSize, 5, 1, 10);
-  const category = resolveCategory(input.category, unique(questions.map((q) => q.category)));
-  const subject = resolveCatalogueValue(input.subject, unique(questions.map((q) => q.subject)));
-  const topic = resolveCatalogueValue(input.topic, unique(questions.map((q) => q.topic)));
-  const year = resolveNumber(input.year);
-  const paper = resolveNumber(input.paper);
-  return {
-    category: category.value as 'OL' | 'AL' | undefined,
-    subject: subject.value,
-    topic: topic.value,
-    year,
-    paper,
-    page,
-    pageSize,
-    resolvedFilters: {
-      category: category.changed ? category.value : undefined,
-      subject: subject.changed ? subject.value : undefined,
-      topic: topic.changed ? topic.value : undefined,
-      year,
-      paper,
-    },
-  };
-}
-
-function matchesFilters(question: any, filters: ResolvedFilters) {
-  return (
-    (!filters.category || text(question.category) === filters.category) &&
-    (!filters.subject || sameText(question.subject, filters.subject)) &&
-    (!filters.topic || sameText(question.topic, filters.topic)) &&
-    (!filters.year || numberValue(question.year) === filters.year) &&
-    (!filters.paper || numberValue(question.paper) === filters.paper)
-  );
-}
-
-function hasActiveFilters(filters: ResolvedFilters) {
-  return Boolean(filters.category || filters.subject || filters.topic || filters.year || filters.paper);
-}
-
-function paginate(
-  items: any[],
-  filters: ResolvedFilters,
-  resolvedFilters: Record<string, unknown>,
-) {
-  const start = (filters.page - 1) * filters.pageSize;
-  return {
-    items: items.slice(start, start + filters.pageSize),
-    total: items.length,
-    page: filters.page,
-    pageSize: filters.pageSize,
-    totalPages: Math.max(1, Math.ceil(items.length / filters.pageSize)),
-    resolvedFilters,
-  };
-}
-
-function resolveCategory(raw: unknown, categories: string[]) {
-  const literal = text(raw).trim().toUpperCase();
-  if (!literal) return { value: undefined, changed: false };
-  if (categories.includes(literal)) return { value: literal, changed: false };
-  const normalized = normalize(raw).replace(/ /g, '');
-  const ordinary = ['ol', 'olevel', 'ordinary', 'ordinarylevel', 'gceordinarylevel'];
-  const advanced = ['al', 'alevel', 'advanced', 'advancedlevel', 'gceadvancedlevel'];
-  const value = ordinary.includes(normalized)
-    ? 'OL'
-    : advanced.includes(normalized)
-      ? 'AL'
-      : undefined;
-  return value && categories.includes(value)
-    ? { value, changed: value !== raw }
-    : { value: undefined, changed: false };
-}
-
-function resolveCatalogueValue(raw: unknown, candidates: string[]) {
-  const query = normalize(raw);
-  if (!query) return { value: undefined, changed: false };
-  let best = '';
-  let bestScore = 0;
-  for (const candidate of candidates) {
-    const score = similarity(query, normalize(candidate));
-    if (score > bestScore) {
-      best = candidate;
-      bestScore = score;
-    }
+async function ensureIndexed(db: SQLiteDatabase, embeddings: EmbeddingProvider) {
+  let sample: { embedding_json: string | null } | null = null;
+  try {
+    sample = await db.getFirstAsync<{ embedding_json: string | null }>(
+      'SELECT embedding_json FROM exam_questions WHERE embedding_json IS NOT NULL LIMIT 1',
+    );
+  } catch {
+    // Stub DBs in unit tests may not implement getFirstAsync.
+    reindexed = true;
+    return;
   }
-  // Never keep unresolved raw labels — they make every row fail matchesFilters.
-  return bestScore >= 0.45
-    ? { value: best, changed: text(raw) !== best }
-    : { value: undefined, changed: Boolean(text(raw)) };
+  if (sample?.embedding_json) {
+    reindexed = true;
+    return;
+  }
+  if (reindexed && !isFastEmbedder(embeddings)) return;
+
+  if (isFastEmbedder(embeddings)) {
+    reindexed = true;
+    try {
+      await reindexEntityEmbeddings(db, embeddings);
+    } catch {
+      reindexed = false;
+    }
+    return;
+  }
+
+  // Heavy on-device models: kick off in background so the turn is not blocked for minutes.
+  if (reindexed) return;
+  reindexed = true;
+  void reindexEntityEmbeddings(db, embeddings).catch(() => {
+    reindexed = false;
+  });
 }
 
-function resolveNumber(raw: unknown) {
-  const value = numberValue(raw);
-  return value || undefined;
-}
-
-function clampNumber(raw: unknown, fallback: number, min: number, max: number) {
-  const value = numberValue(raw) || fallback;
-  return Math.max(min, Math.min(max, value));
-}
-
-function questionSearchText(q: any) {
-  return [
-    q.markdown,
-    q.answerMarkdown,
-    q.explanationMarkdown,
-    `Topic: ${text(q.topic)}`,
-    `Subject: ${text(q.subject)}`,
-    Array.isArray(q.tags) ? `Tags: ${q.tags.map(text).join(', ')}` : '',
-  ]
-    .map(text)
-    .filter(Boolean)
-    .join('\n');
-}
-
-function questionSourceText(q: any) {
-  return `${text(q.subject) || 'Unknown subject'} ${text(q.year)} Paper ${text(q.paper)}`.trim();
-}
-
-function catalogueQuery(input: Record<string, unknown>) {
-  return [input.subject, input.topic, input.year, input.paper, input.category]
-    .map(text)
-    .filter(Boolean)
-    .join(' ');
-}
-
-function sameText(a: unknown, b: unknown) {
-  return normalize(a) === normalize(b);
-}
-
-function similarity(query: string, candidate: string) {
-  if (!query || !candidate) return 0;
-  if (query === candidate) return 1;
-  if (candidate.includes(query) || query.includes(candidate)) return 0.92;
-  const qTokens = query.split(' ').filter(Boolean);
-  const cTokens = candidate.split(' ').filter(Boolean);
-  const tokenHits = qTokens.filter((q) =>
-    cTokens.some(
-      (c) =>
-        c.includes(q) ||
-        q.includes(c) ||
-        levenshtein(q, c) <= Math.max(1, Math.floor(Math.max(q.length, c.length) * 0.25)),
-    ),
-  ).length;
-  const tokenScore = qTokens.length ? tokenHits / qTokens.length : 0;
-  const distanceScore =
-    1 - levenshtein(query, candidate) / Math.max(query.length, candidate.length, 1);
-  return Math.max(tokenScore * 0.82, distanceScore);
-}
-
-function normalize(value: unknown) {
-  return text(value)
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[^a-z0-9]+/g, ' ')
+/** Strip routing verbs so embeddings match the topic, not "search about …". */
+export function cleanSearchQuery(raw: string): string {
+  const trimmed = String(raw || '').trim();
+  const cleaned = trimmed
+    .replace(
+      /^(find|search|look\s*up)\s+(about\s+|for\s+|similar\s+to\s+|related\s+to\s+)?/i,
+      '',
+    )
+    .replace(/^about\s+/i, '')
     .trim();
+  return cleaned || trimmed;
 }
 
-function text(value: unknown) {
-  return value == null ? '' : String(value);
-}
+export function createQuestionTools(
+  db: SQLiteDatabase,
+  embeddings: EmbeddingProvider,
+): ToolRegistry {
+  const list_exam_categories: ToolDef = {
+    name: 'list_exam_categories',
+    description: 'List exam categories (GCE OL / GCE AL).',
+    schema: categorySchema,
+    async execute() {
+      const items = await listCategories(db);
+      return clipJson({
+        count: items.length,
+        items: items.map((c) => ({
+          id: c.id,
+          code: c.code,
+          name: c.name,
+          description: clip(c.descriptionMd, 120),
+        })),
+      });
+    },
+  };
 
-function numberValue(value: unknown) {
-  if (typeof value === 'number' && Number.isFinite(value)) return Math.trunc(value);
-  const match = text(value).match(/\d+/);
-  return match ? Number(match[0]) : 0;
-}
-
-function unique(values: unknown[]) {
-  return [...new Set(values.map(text).filter(Boolean))];
-}
-
-function levenshtein(a: string, b: string) {
-  let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
-  for (let i = 1; i <= a.length; i++) {
-    const current = [i];
-    for (let j = 1; j <= b.length; j++) {
-      current[j] = Math.min(
-        current[j - 1] + 1,
-        previous[j] + 1,
-        previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+  const list_subjects: ToolDef = {
+    name: 'list_subjects',
+    description: 'List subjects under a category (code or OL/AL).',
+    schema: subjectSchema,
+    async execute(input) {
+      const categoryCode = normalizeCategoryCode(
+        String(input.categoryCode || input.category || ''),
       );
-    }
-    previous = current;
-  }
-  return previous[b.length];
+      const items = await listSubjects(db, { categoryCode });
+      const allCats = await listCategories(db);
+      const catById = new Map(allCats.map((c) => [c.id, c.code]));
+      return clipJson({
+        count: items.length,
+        categoryCode: categoryCode || null,
+        items: items.map((s) => ({
+          id: s.id,
+          code: s.code,
+          name: s.name,
+          categoryCode: catById.get(s.categoryId) || null,
+          description: clip(s.descriptionMd, 100),
+        })),
+      });
+    },
+  };
+
+  const list_exam_years: ToolDef = {
+    name: 'list_exam_years',
+    description: 'List distinct paper years, optionally filtered by subject or category.',
+    schema: yearsSchema,
+    async execute(input) {
+      const subjectName = input.subject ? String(input.subject) : undefined;
+      const subjectCode = input.subjectCode ? String(input.subjectCode) : undefined;
+      const categoryCode = normalizeCategoryCode(String(input.category || '')) || undefined;
+      const years = await listPaperYears(db, {
+        subjectName,
+        subjectCode,
+        categoryCode,
+      });
+      return clipJson({
+        count: years.length,
+        years,
+        subject: subjectName || null,
+        subjectCode: subjectCode || null,
+        category: categoryCode || null,
+      });
+    },
+  };
+
+  const list_papers: ToolDef = {
+    name: 'list_papers',
+    description: 'List papers by subject / year / paper number.',
+    schema: paperSchema,
+    async execute(input) {
+      const items = await listPapers(db, {
+        categoryCode: String(input.category || ''),
+        subjectName: input.subject ? String(input.subject) : undefined,
+        subjectCode: input.subjectCode ? String(input.subjectCode) : undefined,
+        year: num(input.year),
+        paperNumber: num(input.paper),
+      });
+      return clipJson({
+        count: items.length,
+        items: items.slice(0, 20).map((p) => ({
+          id: p.id,
+          year: p.year,
+          paperNumber: p.paperNumber,
+          subject: p.subjectName,
+          category: p.categoryCode,
+          reference: p.reference,
+          title: p.title,
+        })),
+      });
+    },
+  };
+
+  const list_sections: ToolDef = {
+    name: 'list_sections',
+    description: 'List sections for a paper (empty if the paper has no sections).',
+    schema: sectionSchema,
+    async execute(input) {
+      const items = await listSectionsForPaper(db, String(input.paperId));
+      return clipJson({
+        count: items.length,
+        items: items.map((s) => ({
+          id: s.id,
+          code: s.code,
+          name: s.name,
+          sortOrder: s.sortOrder,
+          description: clip(s.descriptionMd, 80),
+        })),
+      });
+    },
+  };
+
+  const list_exam_questions: ToolDef = {
+    name: 'list_exam_questions',
+    description: 'Paginated questions for filters or a paper/section.',
+    schema: listQuestionsSchema,
+    async execute(input) {
+      const result = await listQuestionsForPaper(db, {
+        paperId: input.paperId ? String(input.paperId) : undefined,
+        sectionId: input.sectionId ? String(input.sectionId) : undefined,
+        categoryCode: input.category ? String(input.category) : undefined,
+        subjectName: input.subject ? String(input.subject) : undefined,
+        subjectCode: input.subjectCode ? String(input.subjectCode) : undefined,
+        topic: input.topic ? String(input.topic) : undefined,
+        year: num(input.year),
+        paperNumber: num(input.paper),
+        page: num(input.page) || 1,
+        pageSize: num(input.pageSize) || 5,
+        rootOnly: true,
+      });
+      return clipJson(result);
+    },
+  };
+
+  const get_question_details: ToolDef = {
+    name: 'get_question_details',
+    description: 'Load one question tree (prompt, answer, solution, nested parts).',
+    schema: detailsSchema,
+    async execute(input) {
+      const tree = await getQuestionTree(db, String(input.id));
+      if (!tree) return clipJson({ missing: true, id: input.id });
+      return clipJson({
+        id: tree.id,
+        numberLabel: tree.numberLabel,
+        topic: tree.topic,
+        marks: tree.marks,
+        durationMinutes: tree.durationMinutes,
+        promptMd: clip(tree.promptMd, 700),
+        answerMd: clip(tree.answerMd, 320),
+        solutionMd: clip(tree.solutionMd, 900),
+        hints: (tree.hints || []).slice(0, 3).map((h) => clip(h, 80)),
+        children: (tree.children || []).map((child) => ({
+          id: child.id,
+          numberLabel: child.numberLabel,
+          marks: child.marks,
+          promptMd: clip(child.promptMd, 360),
+          answerMd: clip(child.answerMd, 220),
+          solutionMd: clip(child.solutionMd, 420),
+        })),
+      });
+    },
+  };
+
+  const search_exam_bank: ToolDef = {
+    name: 'search_exam_bank',
+    description:
+      'Semantic search across categories, subjects, papers, sections, and questions using embeddings.',
+    schema: searchSchema,
+    async execute(input) {
+      await ensureIndexed(db, embeddings);
+      const rawQuery = String(input.query || '').trim();
+      const query = cleanSearchQuery(rawQuery);
+      const queryVec = await embeddings.embedQuery(query || 'Cameroon GCE exam');
+      let hits = await searchEntitiesByEmbedding({
+        db,
+        queryVec,
+        levels: (input.levels as ExamEntityLevel[] | undefined) || undefined,
+        filters: {
+          categoryCode: input.category ? String(input.category) : undefined,
+          subjectCode: input.subjectCode ? String(input.subjectCode) : undefined,
+          subjectName: input.subject ? String(input.subject) : undefined,
+          year: num(input.year),
+        },
+        topK: num(input.topK) || 8,
+      });
+      // If embeddings are still empty (heavy model indexing) or too strict, fall back to keywords.
+      if (!hits.length) {
+        hits = await keywordSearchExamBank(db, query, {
+          categoryCode: input.category ? String(input.category) : undefined,
+          subjectCode: input.subjectCode ? String(input.subjectCode) : undefined,
+          subjectName: input.subject ? String(input.subject) : undefined,
+          year: num(input.year),
+        }, num(input.topK) || 8);
+      }
+      return clipJson({
+        query,
+        count: hits.length,
+        hits: hits.map((hit) => ({
+          level: hit.level,
+          id: hit.id,
+          score: Number(hit.score.toFixed(3)),
+          label: hit.label,
+          snippet: hit.snippet,
+        })),
+      });
+    },
+  };
+
+  const search_conversation_memory: ToolDef = {
+    name: 'search_conversation_memory',
+    description: 'Recall prior chat turns by embedding similarity.',
+    schema: memorySchema,
+    async execute(input) {
+      const topK = Math.min(5, Math.max(1, num(input.topK) || 3));
+      const rows = await listMessageEmbeddings(db, String(input.conversationId));
+      if (!rows.length) return { count: 0, hits: [] };
+      const queryVec = await embeddings.embedQuery(String(input.query || ''));
+      const ranked = rows
+        .map((row) => ({
+          role: row.role,
+          text: row.text,
+          score: cosine(queryVec, row.embedding),
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, topK);
+      return clipJson({
+        count: ranked.length,
+        hits: ranked.map((row) => ({
+          role: row.role,
+          text: clip(row.text, 120),
+          score: Number(row.score.toFixed(3)),
+        })),
+      });
+    },
+  };
+
+  return {
+    list_exam_categories,
+    list_subjects,
+    list_exam_years,
+    list_papers,
+    list_sections,
+    list_exam_questions,
+    get_question_details,
+    search_exam_bank,
+    search_conversation_memory,
+  };
 }
+
+export function clipObservation(value: unknown, max = 900) {
+  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  return text.length > max ? `${text.slice(0, max - 1)}…` : value;
+}
+
+function clipJson(value: unknown, max = TOOL_CLIP) {
+  const text = JSON.stringify(value);
+  if (text.length <= max) return value;
+  return shrink(value, max);
+}
+
+function shrink(value: unknown, max: number): unknown {
+  if (value && typeof value === 'object' && Array.isArray((value as any).items)) {
+    const base = { ...(value as Record<string, unknown>) };
+    let items = (base.items as Record<string, unknown>[]).map((item) => ({
+      ...item,
+      description: item.description ? clip(String(item.description), 40) : item.description,
+      stem: item.stem ? clip(String(item.stem), 60) : item.stem,
+      promptMd: undefined,
+      answerMd: undefined,
+      solutionMd: undefined,
+    }));
+    while (items.length > 1 && JSON.stringify({ ...base, items }).length > max) {
+      items = items.slice(0, -1);
+    }
+    return { ...base, items, truncated: true };
+  }
+  if (value && typeof value === 'object' && Array.isArray((value as any).hits)) {
+    const base = { ...(value as Record<string, unknown>) };
+    let hits = (base.hits as Record<string, unknown>[]).map((hit) => ({
+      ...hit,
+      snippet: hit.snippet ? clip(String(hit.snippet), 60) : hit.snippet,
+    }));
+    while (hits.length > 1 && JSON.stringify({ ...base, hits }).length > max) {
+      hits = hits.slice(0, -1);
+    }
+    return { ...base, hits, truncated: true };
+  }
+  const text = JSON.stringify(value);
+  if (text.length <= max) return value;
+  return { truncated: true, preview: `${text.slice(0, max - 20)}…` };
+}
+
+function clip(value: string, max: number) {
+  const text = value.trim();
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+function num(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.trunc(value);
+  const match = value == null ? undefined : String(value).match(/\d+/);
+  return match ? Number(match[0]) : undefined;
+}
+
+

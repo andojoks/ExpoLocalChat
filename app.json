@@ -28,6 +28,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-secure-store",
       [
         "expo-splash-screen",
         {
@@ -65,6 +66,14 @@
     "owner": "andojoks",
     "extra": {
       "router": {},
+      "apiBaseUrl": "http://192.168.1.114:3000",
+      "aboutUrl": "http://192.168.1.114:3000/about",
+      "privacyUrl": "http://192.168.1.114:3000/privacy",
+      "termsUrl": "http://192.168.1.114:3000/terms",
+      "shareUrl": "http://192.168.1.114:3000",
+      "googleWebClientId": "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com",
+      "googleIosClientId": "YOUR_GOOGLE_IOS_CLIENT_ID.apps.googleusercontent.com",
+      "googleAndroidClientId": "YOUR_GOOGLE_ANDROID_CLIENT_ID.apps.googleusercontent.com",
       "eas": {
         "projectId": "1b7f104e-9480-4fbd-9636-0fe0d088ed5d"
       }

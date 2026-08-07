@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text } from 'react-native';
 
 const STARTERS = [
   'Show an available paper',
@@ -21,17 +21,32 @@ export function SuggestionChips({
   if (!chips.length) return null;
 
   return (
-    <View className="flex-row flex-wrap gap-2 px-4 pb-2">
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      style={{ flexGrow: 0, flexShrink: 0 }}
+      contentContainerStyle={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 16,
+        paddingTop: 4,
+        paddingBottom: 8,
+      }}
+    >
       {chips.map((chip) => (
         <Pressable
           key={chip}
           disabled={disabled}
           onPress={() => onSelect(chip)}
-          className={`rounded-full border border-line bg-white px-3 py-2 shadow-sm ${disabled ? 'opacity-50' : ''}`}
+          className={`rounded-xl border border-line bg-white px-3.5 py-2 ${disabled ? 'opacity-50' : ''}`}
         >
-          <Text className="text-xs font-semibold text-forest">{chip}</Text>
+          <Text className="text-xs font-semibold text-forest" numberOfLines={1}>
+            {chip}
+          </Text>
         </Pressable>
       ))}
-    </View>
+    </ScrollView>
   );
 }

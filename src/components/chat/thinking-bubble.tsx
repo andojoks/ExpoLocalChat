@@ -1,24 +1,21 @@
 import { useEffect, useMemo } from 'react';
 import { Animated, Text, View } from 'react-native';
 import type { AgentPhase } from '@/ai/agent';
-import { BotAvatar } from './message-card';
 
 const PHASE_LABEL: Record<AgentPhase, string> = {
-  plan: 'Planning next step…',
-  tool: 'Looking up the question bank…',
-  answer: 'Writing a reply…',
+  plan: 'Working…',
+  tool: 'Looking up the bank…',
+  answer: 'Writing reply…',
 };
 
-export function ThinkingBubble({ phase }: { phase?: AgentPhase | null }) {
+/** Typing dots + optional phase label for an assistant bubble body. */
+export function ThinkingIndicator({ phase }: { phase?: AgentPhase | null }) {
   return (
-    <View className="flex-row items-end gap-2.5">
-      <BotAvatar />
-      <View className="rounded-[22px] rounded-bl-md border border-white bg-white px-4 py-3 shadow-sm">
-        <TypingDots />
-        {!!phase && (
-          <Text className="mt-2 text-[11px] font-medium text-slate-500">{PHASE_LABEL[phase]}</Text>
-        )}
-      </View>
+    <View>
+      <TypingDots />
+      {!!phase && (
+        <Text className="mt-2 text-[11px] font-medium text-slate-500">{PHASE_LABEL[phase]}</Text>
+      )}
     </View>
   );
 }

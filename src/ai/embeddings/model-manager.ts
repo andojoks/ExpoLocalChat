@@ -1,4 +1,4 @@
-import { getServerUrl } from '@/config/server-config';
+﻿import { getApiBaseUrl } from '@/config/api';
 import * as FileSystem from 'expo-file-system/legacy';
 import JSZip from 'jszip';
 import type { EmbeddingStatus } from './embedding';
@@ -30,7 +30,7 @@ export function validateManifest(value: unknown): value is ModelManifest {
   );
 }
 async function fetchManifest() {
-  const response = await fetch(`${getServerUrl()}/models/embeddinggemma/manifest.json`);
+  const response = await fetch(`${getApiBaseUrl()}/models/embeddinggemma/manifest.json`);
   if (!response.ok) throw Error(`Manifest request failed (${response.status})`);
   const manifest: unknown = await response.json();
   if (!validateManifest(manifest)) throw Error('Invalid model manifest');
@@ -54,12 +54,12 @@ export async function getModelState(): Promise<{
           status: {
             kind: 'missing',
             progress: 0,
-            label: `Download ${formatBytes(manifest.archiveBytes)} ZIP`,
+            label: 'Ready when you are',
           },
           manifest,
         };
   } catch {
-    return { status: { kind: 'missing', progress: 0, label: 'Model server unavailable' } };
+    return { status: { kind: 'missing', progress: 0, label: 'Download unavailable' } };
   }
 }
 export async function downloadModel(onProgress: (s: EmbeddingStatus) => void) {
@@ -69,7 +69,7 @@ export async function downloadModel(onProgress: (s: EmbeddingStatus) => void) {
   await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
   const archivePath = `${ROOT}${manifest.archive}`,
     task = FileSystem.createDownloadResumable(
-      `${getServerUrl()}/models/embeddinggemma/${manifest.archive}`,
+      `${getApiBaseUrl()}/models/embeddinggemma/${manifest.archive}`,
       archivePath,
       {},
       (p) => {
@@ -77,18 +77,18 @@ export async function downloadModel(onProgress: (s: EmbeddingStatus) => void) {
         onProgress({
           kind: 'downloading',
           progress: progress * 0.8,
-          label: `Downloading ZIP ${Math.round(progress * 100)}%`,
+          label: `Downloading ${Math.round(progress * 100)}%`,
         });
       },
     ),
     result = await task.downloadAsync();
   if (!result) throw Error('Download interrupted');
-  onProgress({ kind: 'downloading', progress: 0.82, label: 'Unpacking modelâ€¦' });
+  onProgress({ kind: 'downloading', progress: 0.82, label: 'Finishing…' });
   await extractZip(result.uri, directory, (p) =>
     onProgress({
       kind: 'downloading',
       progress: 0.8 + p * 0.2,
-      label: `Unpacking ${Math.round(p * 100)}%`,
+      label: 'Finishing…',
     }),
   );
   await FileSystem.deleteAsync(result.uri, { idempotent: true });
@@ -122,9 +122,9 @@ function readyStatus(manifest: ModelManifest): EmbeddingStatus {
   return {
     kind: manifest.mock ? 'fallback' : 'ready',
     progress: 1,
-    label: manifest.mock ? 'Mock model ready Â· ZIP unpacked' : 'EmbeddingGemma ready',
+    label: 'Ready',
   };
 }
-function formatBytes(n: number) {
-  return n > 1e6 ? `${(n / 1e6).toFixed(0)} MB` : `${Math.ceil(n / 1024)} KB`;
-}
+
+
+
