@@ -4,6 +4,8 @@ export type CatalogPack = {
   version: string;
   year: number;
   s3Key: string;
+  /** Public bucket URL — download directly, no presign. */
+  downloadUrl?: string;
   checksumSha256: string;
   sizeBytes: number;
   changelog: string;
@@ -17,7 +19,7 @@ export type CatalogPack = {
 
 export type PackDetail = CatalogPack & {
   downloadUrl: string;
-  expiresInSeconds: number;
+  expiresInSeconds: number | null;
 };
 
 export type ExamPackV1 = {
@@ -74,4 +76,5 @@ export type InstalledPack = {
   checksum: string;
   installedAt: number;
   status: string;
+  ownerUserId?: string | null;
 };

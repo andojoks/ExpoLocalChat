@@ -105,7 +105,7 @@ export function AppScreenHeader({
         </View>
       ) : null}
 
-      {footer ? <View className="px-4 pb-3">{footer}</View> : null}
+      {footer ? <View>{footer}</View> : null}
     </View>
   );
 }

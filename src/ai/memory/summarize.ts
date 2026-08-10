@@ -53,7 +53,7 @@ export async function summarizeOverflow(input: {
         {
           role: 'system',
           content:
-            'Summarize this Cameroon GCE tutoring chat into one short paragraph (max 60 words). Keep subject, year, paper, active question ids, and open goals. No JSON.',
+            'Summarize this exam tutoring chat into one short paragraph (max 60 words). Keep subject, year, paper, active question ids, and open goals. No JSON.',
         },
         {
           role: 'user',

@@ -38,7 +38,7 @@ export default function ForgotPasswordScreen() {
       subtitle="Enter your email or phone. If an account exists, we’ll email a reset code."
       showBack
     >
-      <ScrollView keyboardShouldPersistTaps="handled">
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
         <AuthError message={error} />
         <AuthField
           label="Email or phone"
@@ -52,7 +52,7 @@ export default function ForgotPasswordScreen() {
           disabled={busy || !identifier.trim()}
           onPress={onSubmit}
         />
-        <Text className="mt-4 text-center text-xs text-slate-500">
+        <Text className="mt-4 text-center text-xs text-[#94A3B8]">
           For phone logins, the code is sent to the email on that account.
         </Text>
       </ScrollView>

@@ -17,7 +17,20 @@ export type AuthTokens = {
   user: AuthUser;
 };
 
-type ErrorBody = { error?: string; code?: string; email?: string };
+export type DeviceAuthOpts = {
+  deviceId: string;
+  deviceType?: string;
+  expoPushToken?: string;
+  devicePublicKey?: string;
+};
+
+type ErrorBody = {
+  error?: string;
+  code?: string;
+  email?: string;
+  deviceType?: string;
+  loggedInAt?: string;
+};
 
 async function parseJson(res: Response) {
   return res.json().catch(() => ({}));
@@ -35,13 +48,26 @@ async function postAuth<T>(path: string, body: unknown): Promise<T> {
       status?: number;
       code?: string;
       email?: string;
+      deviceType?: string;
+      loggedInAt?: string;
     };
     err.status = res.status;
     err.code = data.code;
     err.email = data.email;
+    err.deviceType = data.deviceType;
+    err.loggedInAt = data.loggedInAt;
     throw err;
   }
   return data;
+}
+
+function withDeviceFields(opts: DeviceAuthOpts) {
+  return {
+    deviceId: opts.deviceId,
+    ...(opts.deviceType ? { deviceType: opts.deviceType } : {}),
+    ...(opts.expoPushToken ? { expoPushToken: opts.expoPushToken } : {}),
+    ...(opts.devicePublicKey ? { devicePublicKey: opts.devicePublicKey } : {}),
+  };
 }
 
 export function signup(input: {
@@ -56,20 +82,31 @@ export function signup(input: {
   );
 }
 
-export function login(identifier: string, password: string) {
-  return postAuth<AuthTokens>('/api/mobile/auth/login', { identifier, password });
+export function login(identifier: string, password: string, device: DeviceAuthOpts) {
+  return postAuth<AuthTokens>('/api/mobile/auth/login', {
+    identifier,
+    password,
+    ...withDeviceFields(device),
+  });
 }
 
-export function refresh(refreshToken: string) {
-  return postAuth<AuthTokens>('/api/mobile/auth/refresh', { refreshToken });
+export function refresh(refreshToken: string, device: DeviceAuthOpts) {
+  return postAuth<AuthTokens>('/api/mobile/auth/refresh', {
+    refreshToken,
+    ...withDeviceFields(device),
+  });
 }
 
 export function logout() {
   return postAuth<{ ok: boolean }>('/api/mobile/auth/logout', {});
 }
 
-export function verifyEmail(email: string, code: string) {
-  return postAuth<AuthTokens>('/api/mobile/auth/verify-email', { email, code });
+export function verifyEmail(email: string, code: string, device: DeviceAuthOpts) {
+  return postAuth<AuthTokens>('/api/mobile/auth/verify-email', {
+    email,
+    code,
+    ...withDeviceFields(device),
+  });
 }
 
 export function resendOtp(email: string, purpose: 'EMAIL_VERIFY' | 'PASSWORD_RESET') {
@@ -80,16 +117,25 @@ export function forgotPassword(identifier: string) {
   return postAuth<{ ok: boolean }>('/api/mobile/auth/forgot-password', { identifier });
 }
 
-export function resetPassword(identifier: string, code: string, newPassword: string) {
+export function resetPassword(
+  identifier: string,
+  code: string,
+  newPassword: string,
+  device: DeviceAuthOpts,
+) {
   return postAuth<AuthTokens>('/api/mobile/auth/reset-password', {
     identifier,
     code,
     newPassword,
+    ...withDeviceFields(device),
   });
 }
 
-export function googleSignIn(idToken: string) {
-  return postAuth<AuthTokens>('/api/mobile/auth/google', { idToken });
+export function googleSignIn(idToken: string, device: DeviceAuthOpts) {
+  return postAuth<AuthTokens>('/api/mobile/auth/google', {
+    idToken,
+    ...withDeviceFields(device),
+  });
 }
 
 export async function fetchMe(accessToken: string) {
@@ -97,7 +143,19 @@ export async function fetchMe(accessToken: string) {
     headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
   });
   const data = (await parseJson(res)) as { user?: AuthUser } & ErrorBody;
-  if (!res.ok) throw new Error(data.error || 'Failed to load profile');
+  if (!res.ok) {
+    const err = new Error(data.error || 'Failed to load profile') as Error & {
+      status?: number;
+      code?: string;
+      deviceType?: string;
+      loggedInAt?: string;
+    };
+    err.status = res.status;
+    err.code = data.code;
+    err.deviceType = data.deviceType;
+    err.loggedInAt = data.loggedInAt;
+    throw err;
+  }
   return data.user!;
 }
 

@@ -31,10 +31,10 @@ export function cannedChitchatReply(
     return 'Hi — ask for subjects, a year/paper list, or a topic to search.';
   }
   if (/^(hi|hello|hey|yo|sup|hiya|howdy)\b/.test(text)) {
-    return `Hi — I'm your on-device Cameroon GCE tutor.\n\nTry **What subjects are available?**, **${example}**, or ask to explain a listed question.`;
+    return `Hi — I'm your on-device exam pack tutor.\n\nTry **What subjects are available?**, **${example}**, or ask to explain a listed question.`;
   }
   if (/who are you|what can you do|what do you do|^help$/.test(text)) {
-    return `I browse a local GCE question bank on this device:\n\n- Catalogue (categories & subjects)\n- List papers / questions by year\n- Search topics\n- Explain a question with prompt, answer, and solution\n\nAsk: **What subjects are available?**`;
+    return `I browse a local exam question bank on this device:\n\n- Catalogue (categories & subjects)\n- List papers / questions by year\n- Search topics\n- Explain a question with prompt, answer, and solution\n\nAsk: **What subjects are available?**`;
   }
   if (/^(thanks|thank you|thx)\b/.test(text)) {
     return `You're welcome. What should we study next?`;

@@ -7,11 +7,29 @@ export type AssetCacheStats = {
   downloaded: number;
   skipped: number;
   failed: number;
+  /** HTML still contains el-asset:// (pack was built before URL bake-in). */
+  unresolvedElAsset?: number;
 };
 
-function packAssetsRoot(): string {
+/** Local directory for cached pack images (also used as WebView base / iOS read access). */
+export function packAssetsRoot(): string {
   const base = FileSystem.documentDirectory || FileSystem.cacheDirectory || '';
   return `${base}pack-assets/`;
+}
+
+const EL_ASSET_RE = /el-asset:\/\/id\//i;
+
+/** Count unresolved el-asset:// refs across HTML fragments (install warning). */
+export function countUnresolvedElAssetRefs(
+  ...htmlFragments: Array<string | null | undefined>
+): number {
+  let n = 0;
+  for (const html of htmlFragments) {
+    if (!html || !EL_ASSET_RE.test(html)) continue;
+    const matches = html.match(/el-asset:\/\/id\/[a-z0-9_-]+/gi);
+    if (matches) n += matches.length;
+  }
+  return n;
 }
 
 export function localPathForHash(hh: string, hash: string, ext: string): string {

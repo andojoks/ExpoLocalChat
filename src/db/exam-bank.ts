@@ -101,6 +101,7 @@ export async function ensureExamBankV2(db: SQLiteDatabase) {
       checksum TEXT NOT NULL,
       installed_at INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'installed',
+      owner_user_id TEXT,
       PRIMARY KEY(category_code, subject_code, year)
     );
   `);
@@ -117,6 +118,12 @@ export async function ensureExamBankV2(db: SQLiteDatabase) {
     } catch {
       /* already exists */
     }
+  }
+
+  try {
+    await db.execAsync(`ALTER TABLE installed_packs ADD COLUMN owner_user_id TEXT;`);
+  } catch {
+    /* already exists */
   }
 
   // Drop hardcoded seed bank if present — exam content comes only from installed packs.
@@ -374,7 +381,7 @@ export async function listQuestionsForPaper(
   const total = countRow?.count || 0;
   const offset = (page - 1) * pageSize;
   const rows = await db.getAllAsync<any>(
-    `SELECT q.id,q.number_label,q.topic,q.marks,q.prompt_md,
+    `SELECT q.id,q.number_label,q.topic,q.marks,q.prompt_md,q.prompt_rendered_html,
             c.code category_code,s.name subject_name,p.id paper_id,p.year,p.paper_number,sec.name section_name
      ${base}
      ORDER BY p.year, p.paper_number, pq.sort_order, q.number_label
@@ -389,7 +396,9 @@ export async function listQuestionsForPaper(
       numberLabel: row.number_label,
       topic: row.topic || '',
       marks: row.marks || 0,
-      stem: clip(row.prompt_md || '', 90),
+      stem: plainClip(row.prompt_md || '', 160),
+      promptMd: row.prompt_md || '',
+      promptRenderedHtml: row.prompt_rendered_html || undefined,
       categoryCode: row.category_code,
       subjectName: row.subject_name,
       year: row.year,
@@ -842,6 +851,24 @@ function parseEmbedding(raw: string | null | undefined): number[] | null {
 function clip(value: string, max: number) {
   const text = value.trim();
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+/** Strip markdown/HTML noise so list previews show readable question text. */
+function plainClip(value: string, max: number) {
+  const text = value
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`[^`]*`/g, ' ')
+    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)]\([^)]*\)/g, '$1')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/[#*_>~]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return clip(text, max);
 }
 
 export function embedTextCategory(cat: ExamCategory) {

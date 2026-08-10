@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import { Platform, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
+import { normalizeLatexDelimiters } from '@/study/normalize-latex-delimiters';
 
 /** Chat chrome is always light; do not follow OS dark mode (that made assistant text near-white on white bubbles). */
 const INK = '#0B1424';
@@ -154,8 +155,8 @@ export const RichMarkdown = memo(
 
 /** Keep tutor replies parseable: latex → plain, ensure blank lines before headings. */
 function normalizeChatMarkdown(raw: string): string {
-  return raw
-    .replace(/\$\$([^$]+)\$\$/g, '`$1`')
+  return normalizeLatexDelimiters(raw)
+    .replace(/\$\$([\s\S]+?)\$\$/g, '`$1`')
     .replace(/\$([^$\n]+)\$/g, '`$1`')
     .replace(/\\text\{([^}]+)\}/g, '$1')
     .replace(/\\mathrm\{([^}]+)\}/g, '$1')

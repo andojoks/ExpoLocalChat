@@ -62,6 +62,8 @@ export type QuestionListItem = {
   topic: string;
   marks: number;
   stem: string;
+  promptMd?: string;
+  promptRenderedHtml?: string;
   categoryCode?: string;
   subjectName?: string;
   year?: number;

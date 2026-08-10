@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from '@/config/api';
+import { Alert } from 'react-native';
 import { refresh as refreshTokens } from '@/auth/api';
 import {
   clearTokens,
@@ -6,24 +7,86 @@ import {
   getRefreshToken,
   setTokens,
 } from '@/auth/token-store';
+import { ensureDeviceKeyPair, getDevicePublicKeyPem } from '@/auth/device-keys';
+import { collectDeviceAuthFields } from '@/auth/device-id';
+import { isEverlastingMobileAccessToken } from '@/auth/jwt';
+import {
+  ACCOUNT_SUSPENDED_CODE,
+  forceAccountSuspendedLogout,
+} from '@/auth/account-suspended';
 
 let refreshPromise: Promise<string | null> | null = null;
+let lastSupersededAlertAt = 0;
+
+function maybeAlertDeviceSuperseded(body: {
+  code?: string;
+  error?: string;
+}) {
+  if (body.code !== 'DEVICE_SUPERSEDED') return;
+  const now = Date.now();
+  if (now - lastSupersededAlertAt < 4000) return;
+  lastSupersededAlertAt = now;
+  Alert.alert(
+    'Signed out',
+    body.error ||
+      'You have been signed out. App detected a new login on another device.',
+  );
+}
+
+async function handleSuspendedIfNeeded(res: Response): Promise<boolean> {
+  if (res.status !== 403 && res.status !== 401) return false;
+  const body = (await res
+    .clone()
+    .json()
+    .catch(() => ({}))) as { code?: string; error?: string };
+  if (body.code !== ACCOUNT_SUSPENDED_CODE) return false;
+  await forceAccountSuspendedLogout(body.error);
+  return true;
+}
 
 async function refreshAccessToken(): Promise<string | null> {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
-    const refreshToken = await getRefreshToken();
-    if (!refreshToken) {
-      await clearTokens();
-      return null;
-    }
     try {
-      const pair = await refreshTokens(refreshToken);
-      await setTokens(pair.accessToken, pair.refreshToken);
-      return pair.accessToken;
-    } catch {
-      await clearTokens();
-      return null;
+      const currentAccess = await getAccessToken();
+      // Device-bound everlasting tokens: 401 means revoked/mismatched device — do not refresh.
+      if (isEverlastingMobileAccessToken(currentAccess)) {
+        await clearTokens();
+        return null;
+      }
+
+      const refreshToken = await getRefreshToken();
+      if (!refreshToken) {
+        await clearTokens();
+        return null;
+      }
+      try {
+        await ensureDeviceKeyPair().catch(() => undefined);
+        let devicePublicKey: string | undefined;
+        try {
+          devicePublicKey = await getDevicePublicKeyPem();
+        } catch {
+          devicePublicKey = undefined;
+        }
+        const device = await collectDeviceAuthFields(devicePublicKey);
+        const pair = await refreshTokens(refreshToken, device);
+        await setTokens(pair.accessToken, pair.refreshToken);
+        try {
+          const { syncPackContentKey } = await import('@/auth/pack-key');
+          await syncPackContentKey();
+        } catch {
+          /* pack key optional until install */
+        }
+        return pair.accessToken;
+      } catch (e) {
+        const code = (e as { code?: string })?.code;
+        if (code === ACCOUNT_SUSPENDED_CODE) {
+          await forceAccountSuspendedLogout((e as Error).message);
+          return null;
+        }
+        await clearTokens();
+        return null;
+      }
     } finally {
       refreshPromise = null;
     }
@@ -51,11 +114,24 @@ export async function apiFetch(path: string, options: HttpOptions = {}): Promise
 
   let res = await fetch(url, { ...rest, headers });
 
+  if (!skipAuth && (await handleSuspendedIfNeeded(res))) {
+    return res;
+  }
+
   if (res.status === 401 && !skipAuth) {
+    const body = (await res
+      .clone()
+      .json()
+      .catch(() => ({}))) as { code?: string; error?: string };
+    maybeAlertDeviceSuperseded(body);
+
     const next = await refreshAccessToken();
     if (next) {
       headers.set('Authorization', `Bearer ${next}`);
       res = await fetch(url, { ...rest, headers });
+      if (await handleSuspendedIfNeeded(res)) {
+        return res;
+      }
     }
   }
 
@@ -66,7 +142,18 @@ export async function apiJson<T>(path: string, options: HttpOptions = {}): Promi
   const res = await apiFetch(path, options);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error((data as { error?: string }).error || `Request failed (${res.status})`);
+    const body = data as { error?: string; code?: string; deviceType?: string; loggedInAt?: string };
+    const err = new Error(body.error || `Request failed (${res.status})`) as Error & {
+      status?: number;
+      code?: string;
+      deviceType?: string;
+      loggedInAt?: string;
+    };
+    err.status = res.status;
+    err.code = body.code;
+    err.deviceType = body.deviceType;
+    err.loggedInAt = body.loggedInAt;
+    throw err;
   }
   return data as T;
 }

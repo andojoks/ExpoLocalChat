@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -7,9 +7,15 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  SUB_PAGE_BG,
+  SubBanner,
+  SubCard,
+  SubInkHeader,
+} from '@/components/subscriptions/sub-chrome';
 import { listPapers } from '@/db/exam-bank';
 import type { ExamPaper } from '@/domain/types';
 
@@ -18,7 +24,6 @@ type PaperRow = ExamPaper & { subjectName?: string; categoryCode?: string };
 export default function PackHubScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const navigation = useNavigation();
   const { categoryCode, subjectCode, year } = useLocalSearchParams<{
     categoryCode: string;
     subjectCode: string;
@@ -30,11 +35,7 @@ export default function PackHubScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const title = `${String(subjectCode || '')} · ${year}`;
-
-  useLayoutEffect(() => {
-    navigation.setOptions({ title });
-  }, [navigation, title]);
+  const subjectName = papers[0]?.subjectName || String(subjectCode || '');
 
   const load = useCallback(async () => {
     setError(null);
@@ -58,18 +59,15 @@ export default function PackHubScreen() {
   }, [load]);
 
   return (
-    <View className="flex-1 bg-white">
-      <View className="border-b border-line px-4 py-3">
-        <Text className="text-sm text-slate-500">
-          {papers[0]?.subjectName || String(subjectCode || '')}
-        </Text>
-        <Text className="text-lg font-bold text-ink">{year} papers</Text>
-      </View>
+    <View className="flex-1" style={{ backgroundColor: SUB_PAGE_BG }}>
+      <SubInkHeader
+        title={subjectName}
+        subtitle={`${year} · ${papers.length} paper${papers.length === 1 ? '' : 's'}`}
+        onBack={() => router.back()}
+      />
 
       {error ? (
-        <View className="mx-4 mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2">
-          <Text className="text-sm text-red-700">{error}</Text>
-        </View>
+        <SubBanner tone="error" icon="alert-circle-outline" body={error} />
       ) : null}
 
       {loading ? (
@@ -80,7 +78,7 @@ export default function PackHubScreen() {
         <FlatList
           data={papers}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -92,9 +90,16 @@ export default function PackHubScreen() {
             />
           }
           ListEmptyComponent={
-            <Text className="py-12 text-center text-sm text-slate-500">
-              No papers in this pack yet.
-            </Text>
+            <SubCard>
+              <View className="items-center px-5 py-8">
+                <View className="mb-3 h-12 w-12 items-center justify-center rounded-2xl bg-[#EFF6FF]">
+                  <Ionicons name="document-text-outline" size={22} color="#2563EB" />
+                </View>
+                <Text className="text-center text-[13px] text-slate-500">
+                  No papers in this pack yet.
+                </Text>
+              </View>
+            </SubCard>
           }
           renderItem={({ item }) => (
             <Pressable
@@ -109,18 +114,27 @@ export default function PackHubScreen() {
                   },
                 })
               }
-              className="mb-2 flex-row items-center justify-between rounded-md border border-line bg-slate-50 px-3 py-3"
+              className="mb-3"
             >
-              <View className="mr-2 min-w-0 flex-1">
-                <Text className="text-sm font-semibold text-ink">
-                  {item.title || `Paper ${item.paperNumber}`}
-                </Text>
-                <Text className="mt-0.5 text-xs text-slate-500">
-                  Paper {item.paperNumber}
-                  {item.reference ? ` · ${item.reference}` : ''}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#64748B" />
+              <SubCard>
+                <View className="flex-row items-center gap-3.5 px-4 py-4">
+                  <View className="h-11 w-11 items-center justify-center rounded-[14px] bg-[#EFF6FF]">
+                    <Text className="text-sm font-black text-[#1D4ED8]">P{item.paperNumber}</Text>
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-[15px] font-bold text-ink" numberOfLines={1}>
+                      {item.title || `Paper ${item.paperNumber}`}
+                    </Text>
+                    <Text className="mt-0.5 text-[12px] text-slate-500" numberOfLines={1}>
+                      {item.reference || `Paper ${item.paperNumber}`}
+                      {item.durationMinutes ? ` · ${item.durationMinutes} min` : ''}
+                    </Text>
+                  </View>
+                  <View className="h-8 w-8 items-center justify-center rounded-full bg-[#F1F5F9]">
+                    <Ionicons name="chevron-forward" size={15} color="#94A3B8" />
+                  </View>
+                </View>
+              </SubCard>
             </Pressable>
           )}
         />

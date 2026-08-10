@@ -21,7 +21,6 @@ CLAUDE.md
 AGENTS.md
 
 # Model binaries must stay outside the app project and be downloaded at runtime.
-models/
 *.gguf
 *.onnx
 *.tflite

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView } from 'react-native';
+import { Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   AuthError,
@@ -9,8 +9,10 @@ import {
   AuthScreenShell,
   AuthSecondaryButton,
 } from '@/components/auth/auth-ui';
+import { AuthPasswordField } from '@/components/auth/password-field';
 import { useAuth } from '@/auth/AuthProvider';
 import { useGoogleAuth } from '@/auth/use-google-auth';
+import { accountSuspendedMessage } from '@/auth/account-suspended';
 
 export default function LoginScreen() {
   const { signInWithPassword } = useAuth();
@@ -32,6 +34,12 @@ export default function LoginScreen() {
         router.push({ pathname: '/(auth)/verify-email', params: { email: err.email } });
         return;
       }
+      if (err.code === 'ACCOUNT_SUSPENDED') {
+        const msg = accountSuspendedMessage(err);
+        Alert.alert('Account suspended', msg);
+        setError(msg);
+        return;
+      }
       setError(err.message || 'Login failed');
     } finally {
       setBusy(false);
@@ -39,12 +47,12 @@ export default function LoginScreen() {
   }
 
   return (
-    <AuthScreenShell
-      title="Welcome back"
-      subtitle="Use your email or phone number and password."
-      showBack
-    >
-      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <AuthScreenShell title="Welcome back">
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
         <AuthError message={error} />
         <AuthField
           label="Email or phone"
@@ -54,9 +62,8 @@ export default function LoginScreen() {
           onChangeText={setIdentifier}
           placeholder="you@school.edu"
         />
-        <AuthField
+        <AuthPasswordField
           label="Password"
-          secureTextEntry
           value={password}
           onChangeText={setPassword}
           placeholder="••••••••"
@@ -65,14 +72,21 @@ export default function LoginScreen() {
         <AuthPrimaryButton label={busy ? 'Signing in…' : 'Log in'} disabled={busy} onPress={onSubmit} />
         <AuthSecondaryButton
           label="Continue with Google"
-          icon="logo-google"
+          icon="google"
           onPress={async () => {
             setError(null);
             setBusy(true);
             try {
               await google.signIn();
             } catch (e) {
-              setError(e instanceof Error ? e.message : 'Google sign-in failed');
+              const err = e as Error & { code?: string };
+              if (err.code === 'ACCOUNT_SUSPENDED') {
+                const msg = accountSuspendedMessage(err);
+                Alert.alert('Account suspended', msg);
+                setError(msg);
+                return;
+              }
+              setError(err.message || 'Google sign-in failed');
             } finally {
               setBusy(false);
             }

@@ -327,7 +327,7 @@ export function createQuestionTools(
       await ensureIndexed(db, embeddings);
       const rawQuery = String(input.query || '').trim();
       const query = cleanSearchQuery(rawQuery);
-      const queryVec = await embeddings.embedQuery(query || 'Cameroon GCE exam');
+      const queryVec = await embeddings.embedQuery(query || 'exam past paper');
       let hits = await searchEntitiesByEmbedding({
         db,
         queryVec,

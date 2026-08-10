@@ -54,7 +54,13 @@ export function OtpBoxes({
               refs.current[i - 1]?.focus();
             }
           }}
-          className="h-14 flex-1 rounded-md border border-line bg-white text-center text-xl font-bold text-ink"
+          className="h-14 flex-1 text-center text-xl font-bold text-ink"
+          style={{
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#E8EEF4',
+            backgroundColor: '#FFFFFF',
+          }}
         />
       ))}
     </View>
@@ -91,7 +97,7 @@ export function ResendCooldown({
       }}
       className="items-center py-2"
     >
-      <Text className={`text-sm font-semibold ${left > 0 ? 'text-slate-400' : 'text-forest'}`}>
+      <Text className={`text-sm font-semibold ${left > 0 ? 'text-slate-400' : 'text-[#2563EB]'}`}>
         {left > 0 ? `Resend code in ${left}s` : busy ? 'Sending…' : 'Resend code'}
       </Text>
     </Pressable>

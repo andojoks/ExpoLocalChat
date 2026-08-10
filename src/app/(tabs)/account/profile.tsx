@@ -1,15 +1,29 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import type { CountryCode } from 'libphonenumber-js';
 import { useAuth } from '@/auth/AuthProvider';
 import { AuthError, AuthField, AuthPrimaryButton } from '@/components/auth/auth-ui';
+import { PhoneField } from '@/components/auth/phone-field';
 import { AppScreenHeader } from '@/components/screen-header';
+import { useFloatingTabClearance } from '@/components/app-tab-bar';
+import {
+  DEFAULT_PHONE_COUNTRY,
+  splitE164,
+  toE164,
+  validateOptionalPhone,
+} from '@/auth/phone';
 
 export default function ProfileScreen() {
   const { user, updateProfile } = useAuth();
   const router = useRouter();
+  const tabClearance = useFloatingTabClearance();
+  const initial = useMemo(() => splitE164(user?.phone), [user?.phone]);
   const [name, setName] = useState(user?.name || '');
-  const [phone, setPhone] = useState(user?.phone || '');
+  const [phoneCountry, setPhoneCountry] = useState<CountryCode>(
+    initial.country || DEFAULT_PHONE_COUNTRY,
+  );
+  const [phoneNational, setPhoneNational] = useState(initial.national);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -17,11 +31,16 @@ export default function ProfileScreen() {
   async function onSave() {
     setError(null);
     setMessage(null);
+    const phoneError = validateOptionalPhone(phoneNational, phoneCountry);
+    if (phoneError) {
+      setError(phoneError);
+      return;
+    }
     setBusy(true);
     try {
       await updateProfile({
         name: name.trim() || null,
-        phone: phone.trim() || null,
+        phone: toE164(phoneNational, phoneCountry),
       });
       setMessage('Profile updated');
     } catch (e) {
@@ -33,8 +52,12 @@ export default function ProfileScreen() {
 
   return (
     <View className="flex-1 bg-[#EEF4F8]">
-      <AppScreenHeader title="Profile" onBack={() => router.back()} />
-      <ScrollView className="px-5 pt-5" keyboardShouldPersistTaps="handled">
+      <AppScreenHeader title="Profile" onBack={() => router.navigate('/(tabs)/account' as never)} />
+      <ScrollView
+        className="px-5 pt-5"
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: tabClearance }}
+      >
         <AuthError message={error} />
         {message ? (
           <View className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2.5">
@@ -43,19 +66,27 @@ export default function ProfileScreen() {
         ) : null}
         <AuthField label="Name" value={name} onChangeText={setName} placeholder="Your name" />
         <View className="mb-3.5">
-          <Text className="mb-1.5 text-xs font-semibold text-slate-600">Email</Text>
+          <Text className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">
+            Email
+          </Text>
           <TextInput
             editable={false}
             value={user?.email || ''}
-            className="rounded-md border border-line bg-slate-50 px-3.5 py-3.5 text-[15px] text-slate-500"
+            className="px-4 py-3.5 text-[15px] text-slate-500"
+            style={{
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: '#E8EEF4',
+              backgroundColor: '#F1F5F9',
+            }}
           />
         </View>
-        <AuthField
+        <PhoneField
           label="Phone"
-          keyboardType="phone-pad"
-          value={phone}
-          onChangeText={setPhone}
-          placeholder="Optional"
+          country={phoneCountry}
+          nationalNumber={phoneNational}
+          onCountryChange={setPhoneCountry}
+          onNationalChange={setPhoneNational}
         />
         <AuthPrimaryButton label={busy ? 'Saving…' : 'Save changes'} disabled={busy} onPress={onSave} />
       </ScrollView>

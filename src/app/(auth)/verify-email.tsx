@@ -35,7 +35,7 @@ export default function VerifyEmailScreen() {
       subtitle={`Enter the 6-digit code we sent to ${email || 'your inbox'}.`}
       showBack
     >
-      <ScrollView keyboardShouldPersistTaps="handled">
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
         <AuthError message={error} />
         <OtpBoxes value={code} onChange={setCode} />
         <AuthPrimaryButton
@@ -48,7 +48,7 @@ export default function VerifyEmailScreen() {
             await resendOtp(email, 'EMAIL_VERIFY');
           }}
         />
-        <Text className="mt-2 text-center text-xs text-slate-500">
+        <Text className="mt-2 text-center text-xs text-[#94A3B8]">
           Codes expire in 10 minutes.
         </Text>
       </ScrollView>

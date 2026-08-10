@@ -6,7 +6,9 @@ import {
   collectContentAddressedUrls,
   ensureAssetCached,
   type AssetCacheStats,
+  countUnresolvedElAssetRefs,
 } from '@/packs/asset-cache';
+import { getContentOwnerUserId } from '@/auth/content-owner';
 
 function packId(categoryCode: string, subjectCode: string, year: number, paperNumber?: number) {
   const base = `pack:${categoryCode}:${subjectCode}:${year}`;
@@ -20,27 +22,33 @@ function optionRenderedHtmls(options: ExamPackV1['papers'][0]['questions'][0]['o
     .filter(Boolean);
 }
 
-async function rewriteQuestionHtml(q: {
-  promptRenderedHtml?: string;
-  answerRenderedHtml?: string;
-  solutionRenderedHtml?: string;
-  options?: ExamPackV1['papers'][0]['questions'][0]['options'];
-}): Promise<{
+async function rewriteQuestionHtml(
+  q: {
+    promptRenderedHtml?: string;
+    answerRenderedHtml?: string;
+    solutionRenderedHtml?: string;
+    options?: ExamPackV1['papers'][0]['questions'][0]['options'];
+  },
+  prefetchImages: boolean,
+): Promise<{
   promptHtml: string;
   answerHtml: string;
   solutionHtml: string;
   optionsJson: string;
 }> {
-  const promptHtml = await cacheAndRewriteHtml(q.promptRenderedHtml || '');
-  const answerHtml = await cacheAndRewriteHtml(q.answerRenderedHtml || '');
-  const solutionHtml = await cacheAndRewriteHtml(q.solutionRenderedHtml || '');
+  const rewrite = async (html: string) =>
+    prefetchImages ? cacheAndRewriteHtml(html) : html || '';
+
+  const promptHtml = await rewrite(q.promptRenderedHtml || '');
+  const answerHtml = await rewrite(q.answerRenderedHtml || '');
+  const solutionHtml = await rewrite(q.solutionRenderedHtml || '');
 
   let options = q.options || [];
   if (Array.isArray(options)) {
     const next = [];
     for (const o of options) {
       if (o && typeof o === 'object' && (o as { renderedHtml?: string }).renderedHtml) {
-        const renderedHtml = await cacheAndRewriteHtml(String((o as { renderedHtml?: string }).renderedHtml));
+        const renderedHtml = await rewrite(String((o as { renderedHtml?: string }).renderedHtml));
         next.push({ ...o, renderedHtml });
       } else {
         next.push(o);
@@ -67,9 +75,15 @@ export async function ensureInstalledPacksTable(db: SQLiteDatabase) {
       checksum TEXT NOT NULL,
       installed_at INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'installed',
+      owner_user_id TEXT,
       PRIMARY KEY(category_code, subject_code, year)
     );
   `);
+  try {
+    await db.execAsync(`ALTER TABLE installed_packs ADD COLUMN owner_user_id TEXT;`);
+  } catch {
+    /* already exists */
+  }
 }
 
 export async function listInstalledPacks(db: SQLiteDatabase): Promise<InstalledPack[]> {
@@ -82,6 +96,7 @@ export async function listInstalledPacks(db: SQLiteDatabase): Promise<InstalledP
     checksum: string;
     installed_at: number;
     status: string;
+    owner_user_id: string | null;
   }>('SELECT * FROM installed_packs ORDER BY category_code, subject_code, year DESC');
   return rows.map((r) => ({
     categoryCode: r.category_code,
@@ -91,6 +106,7 @@ export async function listInstalledPacks(db: SQLiteDatabase): Promise<InstalledP
     checksum: r.checksum,
     installedAt: r.installed_at,
     status: r.status,
+    ownerUserId: r.owner_user_id,
   }));
 }
 
@@ -109,6 +125,7 @@ export async function getInstalledPack(
     checksum: string;
     installed_at: number;
     status: string;
+    owner_user_id: string | null;
   }>(
     `SELECT * FROM installed_packs WHERE category_code=? AND subject_code=? AND year=?`,
     categoryCode,
@@ -124,6 +141,7 @@ export async function getInstalledPack(
     checksum: row.checksum,
     installedAt: row.installed_at,
     status: row.status,
+    ownerUserId: row.owner_user_id,
   };
 }
 
@@ -174,14 +192,24 @@ export async function importExamPackFromJson(
   db: SQLiteDatabase,
   body: string,
   expectedChecksum: string,
+  opts?: { prefetchImages?: boolean },
 ): Promise<InstalledPack & { assetStats?: AssetCacheStats }> {
+  const prefetchImages = opts?.prefetchImages !== false;
   await ensureInstalledPacksTable(db);
+  if (!body?.trim()) {
+    throw new Error('Pack body is empty — download may have failed');
+  }
   const digest = await sha256Hex(body);
   if (expectedChecksum && digest !== expectedChecksum) {
     throw new Error('Pack checksum mismatch — download may be corrupt');
   }
 
-  const pack = JSON.parse(body) as ExamPackV1;
+  let pack: ExamPackV1;
+  try {
+    pack = JSON.parse(body) as ExamPackV1;
+  } catch {
+    throw new Error('Pack JSON is invalid — re-publish the pack from admin');
+  }
   if (pack.schema !== 'exam-pack-v1') {
     throw new Error(`Unsupported pack schema: ${String((pack as { schema?: string }).schema)}`);
   }
@@ -206,16 +234,27 @@ export async function importExamPackFromJson(
     }
   }
   const assetStats: AssetCacheStats = { scanned: 0, downloaded: 0, skipped: 0, failed: 0 };
-  const urls = collectContentAddressedUrls(...htmlPool);
-  assetStats.scanned = urls.length;
-  for (const url of urls) {
-    try {
-      const { downloaded } = await ensureAssetCached(url);
-      if (downloaded) assetStats.downloaded += 1;
-      else assetStats.skipped += 1;
-    } catch {
-      assetStats.failed += 1;
+  const unresolvedElAsset = countUnresolvedElAssetRefs(...htmlPool);
+  if (unresolvedElAsset > 0) {
+    assetStats.unresolvedElAsset = unresolvedElAsset;
+    console.warn(
+      `[import-pack] ${categoryCode}/${subjectCode}/${year}: ${unresolvedElAsset} unresolved el-asset:// ref(s) in HTML — republish packs after web el-asset rewrite`,
+    );
+  }
+  if (prefetchImages) {
+    const urls = collectContentAddressedUrls(...htmlPool);
+    assetStats.scanned = urls.length;
+    for (const url of urls) {
+      try {
+        const { downloaded } = await ensureAssetCached(url);
+        if (downloaded) assetStats.downloaded += 1;
+        else assetStats.skipped += 1;
+      } catch {
+        assetStats.failed += 1;
+      }
     }
+  } else {
+    assetStats.scanned = collectContentAddressedUrls(...htmlPool).length;
   }
 
   await removeInstalledPack(db, categoryCode, subjectCode, year);
@@ -289,7 +328,7 @@ export async function importExamPackFromJson(
     let sort = 0;
     for (const q of paper.questions) {
       const qid = `${paperId}:q:${q.numberLabel}`;
-      const html = await rewriteQuestionHtml(q);
+      const html = await rewriteQuestionHtml(q, prefetchImages);
       await db.runAsync(
         `INSERT OR REPLACE INTO exam_questions(
            id,parent_question_id,number_label,topic,marks,duration_minutes,
@@ -327,7 +366,7 @@ export async function importExamPackFromJson(
 
       for (const part of q.parts || []) {
         const pid = `${qid}:${part.numberLabel}`;
-        const partHtml = await rewriteQuestionHtml(part);
+        const partHtml = await rewriteQuestionHtml(part, prefetchImages);
         await db.runAsync(
           `INSERT OR REPLACE INTO exam_questions(
              id,parent_question_id,number_label,topic,marks,duration_minutes,
@@ -365,9 +404,11 @@ export async function importExamPackFromJson(
     }
   }
 
+  const ownerUserId = (await getContentOwnerUserId()) || null;
+
   await db.runAsync(
-    `INSERT OR REPLACE INTO installed_packs(category_code,subject_code,year,version,checksum,installed_at,status)
-     VALUES(?,?,?,?,?,?,?)`,
+    `INSERT OR REPLACE INTO installed_packs(category_code,subject_code,year,version,checksum,installed_at,status,owner_user_id)
+     VALUES(?,?,?,?,?,?,?,?)`,
     categoryCode,
     subjectCode,
     year,
@@ -375,6 +416,7 @@ export async function importExamPackFromJson(
     digest,
     now,
     'installed',
+    ownerUserId,
   );
 
   return {
@@ -385,6 +427,7 @@ export async function importExamPackFromJson(
     checksum: digest,
     installedAt: now,
     status: 'installed',
+    ownerUserId,
     assetStats,
   };
 }

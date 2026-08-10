@@ -1,18 +1,18 @@
-﻿import type { AgentContext, ChatMessage } from '@/domain/types';
+import type { AgentContext, ChatMessage } from '@/domain/types';
 
 export const MODEL_CONTEXT_TOKENS = 2048;
 export const RECENT_RAW_TURNS = 6;
 export const TOOL_MODEL_CLIP_CHARS = 600;
 export const TOOL_UI_PREVIEW_CHARS = 900;
 
-export const CHITCHAT_SYSTEM = `Cameroon GCE tutor. Short markdown. No invented papers. No JSON.`;
+export const CHITCHAT_SYSTEM = `Exam pack tutor. Short markdown. No invented papers. No JSON.`;
 
-export const CLARIFY_SYSTEM = `Cameroon GCE tutor. Ask ONE short question for the missing slot. No JSON.`;
+export const CLARIFY_SYSTEM = `Exam pack tutor. Ask ONE short question for the missing slot. No JSON.`;
 
-export const ANSWER_SYSTEM = `Cameroon GCE tutor.
+export const ANSWER_SYSTEM = `Exam pack tutor.
 Use Facts only. Markdown bullets. Never JSON or keys like count/items/hits.`;
 
-export const EXPLAIN_SYSTEM = `Cameroon GCE tutor.
+export const EXPLAIN_SYSTEM = `Exam pack tutor.
 Teach from Facts only. Short steps. Never JSON.`;
 
 export function clipText(value: unknown, max: number) {
