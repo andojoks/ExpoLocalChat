@@ -27,6 +27,7 @@
     "@expo-google-fonts/sora": "^0.4.2",
     "@expo/ui": "~57.0.7",
     "@expo/vector-icons": "^15.0.2",
+    "@gorhom/bottom-sheet": "^5.2.14",
     "@huggingface/transformers": "^4.2.0",
     "cors": "^2.8.6",
     "expo": "~57.0.7",

@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SQLiteProvider } from 'expo-sqlite';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { migrateDatabase } from '@/db/database';
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
 import { isOnboardingComplete } from '@/onboarding/storage';
@@ -83,14 +84,16 @@ function AppGate({ children }: { children: ReactNode }) {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SQLiteProvider databaseName="questionbank.db" onInit={migrateDatabase}>
-        <AuthProvider>
-          <AppGate>
-            <StatusBar style="auto" />
-            <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
-          </AppGate>
-        </AuthProvider>
-      </SQLiteProvider>
+      <BottomSheetModalProvider>
+        <SQLiteProvider databaseName="questionbank.db" onInit={migrateDatabase}>
+          <AuthProvider>
+            <AppGate>
+              <StatusBar style="auto" />
+              <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+            </AppGate>
+          </AuthProvider>
+        </SQLiteProvider>
+      </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
 }
