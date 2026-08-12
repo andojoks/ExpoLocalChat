@@ -14,6 +14,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import {
   createConversation,
   deleteConversation,
@@ -37,12 +39,14 @@ import {
   generateConversationTitle,
   isDefaultConversationTitle,
 } from '@/ai/conversation-title';
-import type { AgentContext, AgentTiming, ChatMessage, ContextUsage, ConversationSummary } from '@/domain/types';
+import type { AgentContext, ChatMessage, ContextUsage, ConversationSummary } from '@/domain/types';
 import { localTutorErrorMessage } from '@/ai/local-error';
 import { MessageCard } from '@/components/chat/message-card';
 import { SuggestionChips } from '@/components/chat/suggestion-chips';
 import { WelcomeHero } from '@/components/chat/welcome-hero';
 import { useFloatingTabClearance } from '@/components/app-tab-bar';
+import { BRAND_BLUE, BRAND_HEADER_GRADIENT, BRAND_MIST } from '@/theme/brand';
+import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 const emptyUsage: ContextUsage = { usedTokens: 0, maxTokens: 2048, percent: 0, full: false };
 /** Stay pinned only when the user is this close to the newest messages (px). */
@@ -90,16 +94,12 @@ export default function Chat() {
   /** When false, content growth / streaming must not yank scroll back to the end. */
   const stickToBottomRef = useRef(true);
   const listOffsetRef = useRef(0);
-  /** Skip stick-to-bottom while debug expand compensates scroll. */
-  const suppressPinRef = useRef(false);
 
   const requestScrollToBottom = useCallback((force = false) => {
-    if (suppressPinRef.current) return;
     if (!force && !stickToBottomRef.current) return;
     if (scrollTimer.current) return;
     scrollTimer.current = setTimeout(() => {
       scrollTimer.current = null;
-      if (suppressPinRef.current) return;
       if (!force && !stickToBottomRef.current) return;
       // Inverted list: offset 0 is the newest messages (visual bottom).
       listOffsetRef.current = 0;
@@ -111,22 +111,7 @@ export default function Chat() {
     const { contentOffset } = event.nativeEvent;
     listOffsetRef.current = contentOffset.y;
     // Inverted: y≈0 means viewing the newest end.
-    if (!suppressPinRef.current) {
-      stickToBottomRef.current = contentOffset.y <= NEAR_BOTTOM_PX;
-    }
-  }, []);
-
-  /** Keep the reply text on screen when agent-debug body grows (inverted list). */
-  const onDebugExpandBy = useCallback((deltaPx: number) => {
-    if (!(deltaPx > 0)) return;
-    stickToBottomRef.current = false;
-    suppressPinRef.current = true;
-    const next = Math.max(0, listOffsetRef.current + deltaPx);
-    listOffsetRef.current = next;
-    list.current?.scrollToOffset({ offset: next, animated: false });
-    requestAnimationFrame(() => {
-      suppressPinRef.current = false;
-    });
+    stickToBottomRef.current = contentOffset.y <= NEAR_BOTTOM_PX;
   }, []);
 
   const flushStreamingMessage = useCallback(() => {
@@ -265,9 +250,6 @@ export default function Chat() {
     setBusy(true);
     setPhase('plan');
     setStreamingText('');
-    const startedAt = Date.now();
-    let firstTokenAt: number | undefined;
-    let streamedChars = 0;
     stickToBottomRef.current = true;
     const user: ChatMessage = { id: id(), role: 'user', content: text, createdAt: Date.now() };
     const assistantId = id();
@@ -311,9 +293,7 @@ export default function Chat() {
           onToken: (token) => {
             if (!token) return;
             const first = !streamed;
-            if (!firstTokenAt) firstTokenAt = Date.now();
             streamed += token;
-            streamedChars += token.length;
             // Flip footer once; avoid re-rendering the list parent on every token.
             if (first) setStreamingText('streaming');
             pendingStream.current = { id: assistantId, text: streamed };
@@ -340,22 +320,12 @@ export default function Chat() {
           await animateAnswer(answer.content, assistantId);
         }
       }
-      const completedAt = Date.now();
-      const timing = buildAgentTiming({
-        startedAt,
-        firstTokenAt,
-        completedAt,
-        outputText: answer.content || streamed,
-        streamedChars,
-      });
       const assistant: ChatMessage = {
         id: assistantId,
         role: 'assistant',
         content: answer.content,
         toolCalls: answer.toolCalls,
-        agentDebug: answer.agentDebug,
-        agentTiming: timing,
-        createdAt: completedAt,
+        createdAt: Date.now(),
       };
       setMessages((current) => current.map((item) => (item.id === assistantId ? assistant : item)));
       await saveMessage(db, conversationId, assistant, answer.context);
@@ -411,16 +381,9 @@ export default function Chat() {
         item.role === 'assistant' &&
         !item.content?.trim() &&
         index === 0;
-      return (
-        <MessageCard
-          message={item}
-          thinking={thinking}
-          phase={thinking ? phase : null}
-          onDebugExpandBy={onDebugExpandBy}
-        />
-      );
+      return <MessageCard message={item} thinking={thinking} phase={thinking ? phase : null} />;
     },
-    [busy, streamingText, phase, onDebugExpandBy],
+    [busy, streamingText, phase],
   );
   const listContentStyle = useMemo(
     () => ({
@@ -438,33 +401,81 @@ export default function Chat() {
   }
 
   const showStarters = messages.length === 0;
+  const activeTitle =
+    conversations.find((c) => c.id === conversationId)?.title || 'Study chat';
 
   return (
-    <View className="flex-1 bg-[#EEF4F8]">
+    <View className="flex-1" style={{ backgroundColor: BRAND_MIST }}>
+      <StatusBar style="light" />
       <View className="flex-1" style={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight : 0 }}>
-        <View
-          className="border-b border-line bg-white"
-          style={{ paddingTop: insets.top }}
+        <LinearGradient
+          colors={[...BRAND_HEADER_GRADIENT]}
+          locations={[0, 0.5, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            paddingTop: insets.top + 8,
+            paddingBottom: 14,
+            paddingHorizontal: 12,
+          }}
         >
-          <View className="flex-row items-center gap-1 px-2 pb-3.5 pt-2">
-            <IconButton icon="menu" onPress={() => setMenuOpen(true)} />
-            <Text
-              className="min-w-0 flex-1 text-xl font-black text-ink"
-              numberOfLines={1}
-              style={{ lineHeight: 28, includeFontPadding: false }}
+          <View
+            pointerEvents="none"
+            className="absolute -right-16 -top-8 h-40 w-40 rounded-full"
+            style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
+          />
+          <View className="flex-row items-center gap-1">
+            <Pressable
+              onPress={() => setMenuOpen(true)}
+              hitSlop={12}
+              className="h-10 w-10 items-center justify-center rounded-full"
+              style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
             >
-              Chat
-            </Text>
+              <Ionicons name="menu" size={20} color="#F8FAFC" />
+            </Pressable>
+            <View className="min-w-0 flex-1 px-1.5">
+              <Text
+                className="text-xl font-black text-white"
+                numberOfLines={1}
+                style={[LABEL_TEXT_ANDROID, { lineHeight: 28 }]}
+              >
+                Chat
+              </Text>
+              <Text
+                className="mt-0.5 text-[12px] text-white/75"
+                numberOfLines={1}
+                style={LABEL_TEXT_ANDROID}
+              >
+                {activeTitle}
+              </Text>
+            </View>
             <Pressable
               onPress={() => setFull((x) => !x)}
               hitSlop={8}
-              className={`h-10 w-10 items-center justify-center bg-transparent ${full ? '' : 'opacity-40'}`}
+              accessibilityLabel={full ? 'Detailed answers on' : 'Detailed answers off'}
+              className="h-10 w-10 items-center justify-center rounded-full"
+              style={{
+                backgroundColor: full ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+              }}
             >
-              <Ionicons name="sparkles" size={20} color={full ? '#2563EB' : '#94A3B8'} />
+              <Ionicons
+                name="sparkles"
+                size={18}
+                color={full ? '#FFFFFF' : 'rgba(255,255,255,0.45)'}
+              />
             </Pressable>
-            <IconButton icon="create-outline" onPress={() => void startNewChat()} />
+            <Pressable
+              onPress={() => void startNewChat()}
+              hitSlop={8}
+              accessibilityLabel="New chat"
+              className="h-10 w-10 items-center justify-center rounded-full"
+              style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
+            >
+              <Ionicons name="create-outline" size={20} color="#F8FAFC" />
+            </Pressable>
           </View>
-        </View>
+        </LinearGradient>
+
         {contextUsage.full && <ContextFullBanner onNewChat={startNewChat} />}
         {messages.length === 0 ? (
           <WelcomeHero />
@@ -484,7 +495,6 @@ export default function Chat() {
             onScroll={onListScroll}
             scrollEventThrottle={16}
             onContentSizeChange={() => {
-              if (suppressPinRef.current) return;
               if (busy || streamingText.trim()) requestScrollToBottom();
             }}
             onEndReached={loadOlderMessages}
@@ -503,12 +513,23 @@ export default function Chat() {
           onSelect={send}
         />
         <View
-          className="border-t border-line bg-white px-4 pt-3"
+          className="px-4 pt-3"
           style={{
+            backgroundColor: '#FFFFFF',
+            borderTopWidth: 1,
+            borderTopColor: '#E8EEF4',
             paddingBottom: keyboardHeight > 0 ? 10 : tabClearance,
           }}
         >
-          <View className="flex-row items-end rounded-2xl border border-line bg-[#F7FAF8] p-2">
+          <View
+            className="flex-row items-end p-2"
+            style={{
+              borderRadius: 22,
+              borderWidth: 1,
+              borderColor: '#E8EEF4',
+              backgroundColor: '#F8FAFC',
+            }}
+          >
             <TextInput
               value={input}
               onChangeText={setInput}
@@ -536,7 +557,7 @@ export default function Chat() {
                 }
               }}
               placeholder="Ask about a paper, topic, or question…"
-              placeholderTextColor="#8A9B96"
+              placeholderTextColor="#94A3B8"
               onContentSizeChange={(e) =>
                 setInputHeight(Math.min(132, Math.max(46, e.nativeEvent.contentSize.height)))
               }
@@ -546,12 +567,16 @@ export default function Chat() {
             <Pressable
               disabled={!input.trim() || busy}
               onPress={() => send()}
-              className={`mb-0.5 h-11 w-11 items-center justify-center rounded-xl ${input.trim() && !busy ? 'bg-forest' : 'bg-slate-200'}`}
+              className="mb-0.5 h-11 w-11 items-center justify-center"
+              style={{
+                borderRadius: 16,
+                backgroundColor: input.trim() && !busy ? BRAND_BLUE : '#E2E8F0',
+              }}
             >
               <Ionicons
                 name={busy ? 'hourglass-outline' : 'arrow-up'}
                 size={21}
-                color={input.trim() && !busy ? 'white' : '#92A19C'}
+                color={input.trim() && !busy ? 'white' : '#94A3B8'}
               />
             </Pressable>
           </View>
@@ -586,6 +611,7 @@ function ChatDrawer({
   onNew: () => void;
   onDelete: (id: string) => Promise<void>;
 }) {
+  const insets = useSafeAreaInsets();
   const [pendingDelete, setPendingDelete] = useState<ConversationSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -601,18 +627,43 @@ function ChatDrawer({
   }
 
   return (
-    <View className="absolute inset-0 z-50 flex-row bg-black/25">
-      <View className="h-full w-[82%] max-w-sm bg-[#FDFEFE] px-4 pb-6 pt-12 shadow-2xl">
-        <View className="mb-4 flex-row items-center justify-between">
-          <Text className="text-2xl font-black text-ink">Study chats</Text>
-          <IconButton icon="close" onPress={onClose} />
+    <View className="absolute inset-0 z-50 flex-row" style={{ backgroundColor: 'rgba(11,20,36,0.35)' }}>
+      <View
+        className="h-full w-[82%] max-w-sm px-4 pb-6"
+        style={{
+          backgroundColor: BRAND_MIST,
+          paddingTop: insets.top + 12,
+        }}
+      >
+        <View className="mb-5 flex-row items-center justify-between">
+          <Text
+            className="text-2xl font-black tracking-tight text-ink"
+            style={[LABEL_TEXT_ANDROID, { letterSpacing: -0.4 }]}
+          >
+            Study chats
+          </Text>
+          <Pressable
+            onPress={onClose}
+            hitSlop={10}
+            className="h-10 w-10 items-center justify-center rounded-full bg-white"
+            style={{ borderWidth: 1, borderColor: '#E8EEF4' }}
+          >
+            <Ionicons name="close" size={20} color="#0B1424" />
+          </Pressable>
         </View>
         <Pressable
           onPress={onNew}
-          className="mb-4 flex-row items-center justify-center gap-2 rounded-md bg-forest py-3"
+          className="mb-4 flex-row items-center justify-center gap-2 py-3.5"
+          style={{ borderRadius: 18, backgroundColor: BRAND_BLUE }}
         >
           <Ionicons name="add" size={18} color="white" />
-          <Text className="font-bold text-white">Start new chat</Text>
+          <Text
+            numberOfLines={1}
+            className="font-bold text-white"
+            style={[LABEL_TEXT_ANDROID, { flexShrink: 0 }]}
+          >
+            Start new chat
+          </Text>
         </Pressable>
         <FlatList
           data={conversations}
@@ -622,23 +673,30 @@ function ChatDrawer({
             const active = item.id === activeId;
             return (
               <View
-                className={`flex-row items-stretch overflow-hidden rounded-xl border ${active ? 'border-forest bg-[#DBEAFE]' : 'border-line bg-white'}`}
+                className="flex-row items-stretch overflow-hidden"
+                style={{
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: active ? '#BFDBFE' : '#E8EEF4',
+                  backgroundColor: active ? '#EFF6FF' : '#FFFFFF',
+                }}
               >
-                <Pressable onPress={() => onSelect(item.id)} className="min-w-0 flex-1 px-4 py-3">
-                  <Text numberOfLines={1} className="font-bold text-ink">
+                <Pressable onPress={() => onSelect(item.id)} className="min-w-0 flex-1 px-4 py-3.5">
+                  <Text numberOfLines={1} className="font-bold text-ink" style={LABEL_TEXT_ANDROID}>
                     {item.title}
                   </Text>
                   <Text numberOfLines={2} className="mt-1 text-xs leading-4 text-slate-500">
                     {item.lastMessage || 'No messages yet'}
                   </Text>
                   <Text className="mt-2 text-[10px] font-medium text-slate-400">
-                    {item.messageCount} messages - {formatDate(item.updatedAt)}
+                    {item.messageCount} messages · {formatDate(item.updatedAt)}
                   </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setPendingDelete(item)}
                   accessibilityLabel={`Delete chat ${item.title}`}
-                  className="items-center justify-center border-l border-line/80 px-3.5"
+                  className="items-center justify-center px-3.5"
+                  style={{ borderLeftWidth: 1, borderLeftColor: '#E8EEF4' }}
                 >
                   <Ionicons name="trash-outline" size={18} color="#B4534B" />
                 </Pressable>
@@ -651,25 +709,46 @@ function ChatDrawer({
 
       {pendingDelete && (
         <View className="absolute inset-0 z-50 items-center justify-center bg-black/40 px-6">
-          <View className="w-full max-w-sm rounded-md border border-line bg-white p-5 shadow-2xl">
+          <View
+            className="w-full max-w-sm bg-white p-5"
+            style={{
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: '#E8EEF4',
+            }}
+          >
             <Text className="text-lg font-black text-ink">Delete this chat?</Text>
-            <Text className="mt-2 text-sm leading-5 text-slate-600">
+            <Text className="mt-2 text-sm leading-5 text-slate-500">
               “{pendingDelete.title || 'Untitled chat'}” will be removed permanently.
             </Text>
             <View className="mt-5 flex-row gap-2">
               <Pressable
                 disabled={deleting}
                 onPress={() => setPendingDelete(null)}
-                className="flex-1 items-center rounded-md bg-slate-100 py-3"
+                className="flex-1 bg-slate-100 py-3.5"
+                style={{ borderRadius: 16 }}
               >
-                <Text className="font-bold text-slate-600">Cancel</Text>
+                <Text
+                  numberOfLines={1}
+                  className="font-bold text-slate-600"
+                  style={{ width: '100%', textAlign: 'center', flexShrink: 0 }}
+                >
+                  Cancel
+                </Text>
               </Pressable>
               <Pressable
                 disabled={deleting}
                 onPress={() => void confirmDelete()}
-                className="flex-1 items-center rounded-md bg-[#B4534B] py-3"
+                className="flex-1 py-3.5"
+                style={{ borderRadius: 16, backgroundColor: '#B4534B' }}
               >
-                <Text className="font-bold text-white">{deleting ? 'Deleting…' : 'Delete'}</Text>
+                <Text
+                  numberOfLines={1}
+                  className="font-bold text-white"
+                  style={{ width: '100%', textAlign: 'center', flexShrink: 0 }}
+                >
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -681,36 +760,26 @@ function ChatDrawer({
 
 function ContextFullBanner({ onNewChat }: { onNewChat: () => void }) {
   return (
-    <View className="border-b border-amber-200 bg-amber-50 px-4 py-3">
-      <Text className="text-sm font-bold text-amber-900">This chat is getting long</Text>
-      <Text className="mt-1 text-xs leading-4 text-amber-800">
+    <View
+      className="px-4 py-3"
+      style={{
+        borderBottomWidth: 1,
+        borderBottomColor: '#FDE68A',
+        backgroundColor: '#FFFBEB',
+      }}
+    >
+      <Text className="text-sm font-bold text-[#92400E]">This chat is getting long</Text>
+      <Text className="mt-1 text-xs leading-4 text-[#B45309]">
         Start a new chat to keep answers focused.
       </Text>
       <Pressable
         onPress={onNewChat}
-        className="mt-2 self-start rounded-xl bg-amber-900 px-3 py-1.5"
+        className="mt-2 self-start px-3 py-1.5"
+        style={{ borderRadius: 14, backgroundColor: '#92400E' }}
       >
         <Text className="text-xs font-bold text-white">Start new chat</Text>
       </Pressable>
     </View>
-  );
-}
-
-function IconButton({
-  icon,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      hitSlop={8}
-      className="h-10 w-10 items-center justify-center bg-transparent"
-    >
-      <Ionicons name={icon} size={22} color="#0B1424" />
-    </Pressable>
   );
 }
 
@@ -728,39 +797,88 @@ function ModelGate({
   const downloading = status.kind === 'downloading';
 
   return (
-    <View
-      className="flex-1 bg-[#EEF4F8]"
-      style={{ paddingTop: insets.top, paddingBottom: tabClearance }}
-    >
-      <View className="flex-1 items-center justify-center px-6">
-        <View className="w-full max-w-md">
-          <View className="mb-5 h-14 w-14 items-center justify-center rounded-2xl bg-forest">
-            <Ionicons name="cloud-download-outline" size={26} color="white" />
+    <View className="flex-1" style={{ backgroundColor: BRAND_MIST }}>
+      <StatusBar style="light" />
+      <LinearGradient
+        colors={[...BRAND_HEADER_GRADIENT]}
+        locations={[0, 0.5, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          paddingTop: insets.top + 8,
+          paddingBottom: 16,
+          paddingHorizontal: 14,
+        }}
+      >
+        <Text
+          className="pl-1.5 text-2xl font-black text-white"
+          style={[LABEL_TEXT_ANDROID, { lineHeight: 32 }]}
+        >
+          Chat
+        </Text>
+        <Text className="mt-0.5 pl-1.5 text-[12px] text-white/75" style={LABEL_TEXT_ANDROID}>
+          One-time setup
+        </Text>
+      </LinearGradient>
+
+      <View
+        className="flex-1 items-center justify-center px-6"
+        style={{ paddingBottom: tabClearance }}
+      >
+        <View
+          className="w-full max-w-md bg-white px-5 py-6"
+          style={{
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: '#E8EEF4',
+          }}
+        >
+          <View
+            className="mb-4 h-12 w-12 items-center justify-center"
+            style={{ borderRadius: 16, backgroundColor: BRAND_BLUE }}
+          >
+            <Ionicons name="cloud-download-outline" size={24} color="white" />
           </View>
-          <Text className="text-3xl font-black tracking-tight text-ink">Download agent data</Text>
-          <Text className="mt-3 text-[15px] leading-6 text-slate-600">
+          <Text
+            className="text-[22px] font-black tracking-tight text-ink"
+            style={[LABEL_TEXT_ANDROID, { letterSpacing: -0.3 }]}
+          >
+            Download agent data
+          </Text>
+          <Text className="mt-2 text-[14px] leading-6 text-slate-500">
             Get the study assistant ready on this device. This only needs to happen once.
           </Text>
           {downloading ? (
-            <View className="mt-8">
-              <View className="h-2 overflow-hidden rounded-full bg-slate-200">
+            <View className="mt-6">
+              <View className="h-2 overflow-hidden rounded-full bg-[#E8EEF4]">
                 <View
-                  className="h-full rounded-full bg-forest"
-                  style={{ width: `${Math.max(4, status.progress * 100)}%` }}
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.max(4, status.progress * 100)}%`,
+                    backgroundColor: BRAND_BLUE,
+                  }}
                 />
               </View>
               <Text className="mt-3 text-sm text-slate-500">{status.label}</Text>
             </View>
           ) : null}
           {!!message && !downloading ? (
-            <Text className="mt-6 text-sm text-rose-600">{message}</Text>
+            <Text className="mt-5 text-sm text-[#B91C1C]">{message}</Text>
           ) : null}
           <Pressable
             disabled={downloading}
             onPress={onDownload}
-            className={`mt-8 items-center rounded-md py-4 ${downloading ? 'bg-slate-300' : 'bg-forest'}`}
+            className="mt-6 py-4"
+            style={{
+              borderRadius: 18,
+              backgroundColor: downloading ? '#CBD5E1' : BRAND_BLUE,
+            }}
           >
-            <Text className="font-bold text-white">
+            <Text
+              numberOfLines={1}
+              className="font-bold text-white"
+              style={{ width: '100%', textAlign: 'center', flexShrink: 0 }}
+            >
               {downloading ? 'Downloading…' : 'Download'}
             </Text>
           </Pressable>
@@ -792,29 +910,3 @@ function id() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function buildAgentTiming(input: {
-  startedAt: number;
-  firstTokenAt?: number;
-  completedAt: number;
-  outputText: string;
-  streamedChars: number;
-}): AgentTiming {
-  const elapsedMs = Math.max(1, input.completedAt - input.startedAt);
-  const outputTokens = estimateOutputTokens(input.outputText || ''.padEnd(input.streamedChars));
-  const activeMs = Math.max(1, input.completedAt - (input.firstTokenAt || input.startedAt));
-  return {
-    startedAt: input.startedAt,
-    firstTokenAt: input.firstTokenAt,
-    completedAt: input.completedAt,
-    elapsedMs,
-    firstTokenMs: input.firstTokenAt ? input.firstTokenAt - input.startedAt : undefined,
-    outputTokens,
-    tokensPerSecond: Number((outputTokens / (activeMs / 1000)).toFixed(2)),
-  };
-}
-
-function estimateOutputTokens(text: string) {
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
-  const chars = Math.ceil(text.length / 4);
-  return Math.max(1, Math.max(words, chars));
-}

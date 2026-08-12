@@ -1,26 +1,27 @@
 {
   "expo": {
-    "name": "QuestionBankChat",
+    "name": "Expert Learner",
     "slug": "QuestionBankChat",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "questionbankchat",
+    "scheme": "expertlearner",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.questionbankchat.app",
+      "bundleIdentifier": "com.expertlearner.app",
       "icon": "./assets/expo.icon"
     },
     "android": {
-      "package": "com.questionbankchat.app",
+      "package": "com.expertlearner.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0548E8",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "output": "static",
@@ -32,16 +33,24 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#2563EB",
+          "backgroundColor": "#0548E8",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 160,
           "resizeMode": "contain"
         }
       ],
+      "expo-system-ui",
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "style": "light"
+        }
+      ],
       [
         "expo-notifications",
         {
-          "color": "#2563EB"
+          "color": "#0548E8"
         }
       ],
       "expo-sqlite",
@@ -64,7 +73,8 @@
             "deploymentTarget": "16.4"
           }
         }
-      ]
+      ],
+      "react-native-quick-crypto"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -73,11 +83,11 @@
     "owner": "andojoks",
     "extra": {
       "router": {},
-      "apiBaseUrl": "http://192.168.1.114:3000",
-      "aboutUrl": "http://192.168.1.114:3000/about",
-      "privacyUrl": "http://192.168.1.114:3000/privacy",
-      "termsUrl": "http://192.168.1.114:3000/terms",
-      "shareUrl": "http://192.168.1.114:3000",
+      "apiBaseUrl": "https://www.theexpertlearner.com",
+      "aboutUrl": "https://www.theexpertlearner.com/about",
+      "privacyUrl": "https://www.theexpertlearner.com/privacy",
+      "termsUrl": "https://www.theexpertlearner.com/terms",
+      "shareUrl": "https://www.theexpertlearner.com",
       "googleWebClientId": "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com",
       "googleIosClientId": "YOUR_GOOGLE_IOS_CLIENT_ID.apps.googleusercontent.com",
       "googleAndroidClientId": "YOUR_GOOGLE_ANDROID_CLIENT_ID.apps.googleusercontent.com",

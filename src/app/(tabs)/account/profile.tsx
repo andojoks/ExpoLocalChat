@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { CountryCode } from 'libphonenumber-js';
 import { useAuth } from '@/auth/AuthProvider';
 import { AuthError, AuthField, AuthPrimaryButton } from '@/components/auth/auth-ui';
 import { PhoneField } from '@/components/auth/phone-field';
-import { AppScreenHeader } from '@/components/screen-header';
-import { useFloatingTabClearance } from '@/components/app-tab-bar';
+import { SUB_PAGE_BG, SubInkHeader } from '@/components/subscriptions/sub-chrome';
 import {
   DEFAULT_PHONE_COUNTRY,
   splitE164,
@@ -17,7 +17,7 @@ import {
 export default function ProfileScreen() {
   const { user, updateProfile } = useAuth();
   const router = useRouter();
-  const tabClearance = useFloatingTabClearance();
+  const insets = useSafeAreaInsets();
   const initial = useMemo(() => splitE164(user?.phone), [user?.phone]);
   const [name, setName] = useState(user?.name || '');
   const [phoneCountry, setPhoneCountry] = useState<CountryCode>(
@@ -51,12 +51,15 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#EEF4F8]">
-      <AppScreenHeader title="Profile" onBack={() => router.navigate('/(tabs)/account' as never)} />
+    <View className="flex-1" style={{ backgroundColor: SUB_PAGE_BG }}>
+      <SubInkHeader
+        title="Profile"
+        onBack={() => router.navigate('/(tabs)/account' as never)}
+      />
       <ScrollView
         className="px-5 pt-5"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: tabClearance }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 16 }}
       >
         <AuthError message={error} />
         {message ? (
@@ -66,7 +69,10 @@ export default function ProfileScreen() {
         ) : null}
         <AuthField label="Name" value={name} onChangeText={setName} placeholder="Your name" />
         <View className="mb-3.5">
-          <Text className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">
+          <Text
+            className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase text-[#94A3B8]"
+            style={{ letterSpacing: 1.5 }}
+          >
             Email
           </Text>
           <TextInput
@@ -88,7 +94,11 @@ export default function ProfileScreen() {
           onCountryChange={setPhoneCountry}
           onNationalChange={setPhoneNational}
         />
-        <AuthPrimaryButton label={busy ? 'Saving…' : 'Save changes'} disabled={busy} onPress={onSave} />
+        <AuthPrimaryButton
+          label={busy ? 'Saving…' : 'Save changes'}
+          disabled={busy}
+          onPress={() => void onSave()}
+        />
       </ScrollView>
     </View>
   );

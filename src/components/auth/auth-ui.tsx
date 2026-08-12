@@ -1,13 +1,22 @@
 import { type ReactNode } from 'react';
-import { Pressable, Text, TextInput, View, type TextInputProps } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ExpertLearnerLogo } from '@/components/brand/expert-learner-logo';
 import { GoogleLogo } from '@/components/brand/google-logo';
+import { ButtonLabel, InlineLabel } from '@/components/ui/app-text';
+import { BRAND_BLUE, BRAND_MIST } from '@/theme/brand';
 
-const APP_BG = '#E8EEF5';
+const APP_BG = BRAND_MIST;
 
 const FIELD_SURFACE = {
   borderWidth: 1,
@@ -59,14 +68,28 @@ export function AuthScreenShell({
         </Pressable>
       ) : null}
 
-      <View className="min-h-0 flex-1 px-6">
-        <View className="items-center justify-center px-2 pb-4 pt-10">
+      <ScrollView
+        className="flex-1"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: 'center',
+          paddingHorizontal: 24,
+          paddingVertical: 24,
+          width: '100%',
+        }}
+      >
+        <View className="items-center justify-center px-2 pb-6">
           <ExpertLearnerLogo size={72} variant="onLight" />
-          <Text className="mt-6 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-[#64748B]">
+          <Text
+            className="mt-6 text-center text-[11px] font-semibold uppercase text-[#64748B]"
+            style={{ letterSpacing: 2.4 }}
+          >
             {eyebrow}
           </Text>
           <Text
-            className="mt-3 text-center text-[32px] font-black tracking-tight text-ink"
+            className="mt-3 text-center text-[32px] font-black text-ink"
             style={{ letterSpacing: -0.5 }}
           >
             {title}
@@ -78,8 +101,8 @@ export function AuthScreenShell({
           ) : null}
         </View>
 
-        <View className="min-h-0 flex-1">{children}</View>
-      </View>
+        <View className="w-full">{children}</View>
+      </ScrollView>
     </View>
   );
 }
@@ -90,7 +113,10 @@ export function AuthField({
 }: TextInputProps & { label: string }) {
   return (
     <View className="mb-3.5">
-      <Text className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">
+      <Text
+        className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase text-[#94A3B8]"
+        style={{ letterSpacing: 1.5 }}
+      >
         {label}
       </Text>
       <TextInput
@@ -116,13 +142,13 @@ export function AuthPrimaryButton({
     <Pressable
       disabled={disabled}
       onPress={onPress}
-      className="mt-2 items-center py-4"
+      className="mt-2 py-4"
       style={{
         borderRadius: 16,
-        backgroundColor: disabled ? '#CBD5E1' : '#2563EB',
+        backgroundColor: disabled ? '#CBD5E1' : BRAND_BLUE,
       }}
     >
-      <Text className="text-[15px] font-bold text-white">{label}</Text>
+      <ButtonLabel className="text-[15px] font-bold text-white">{label}</ButtonLabel>
     </Pressable>
   );
 }
@@ -164,11 +190,19 @@ export function AuthSecondaryButton({
       ) : icon ? (
         <Ionicons name={icon} size={18} color={light ? '#F8FAFC' : '#0B1424'} />
       ) : null}
-      <Text
-        className={`text-[15px] font-semibold ${light ? 'text-white' : 'text-ink'}`}
-      >
-        {label}
-      </Text>
+      {icon ? (
+        <InlineLabel
+          className={`text-[15px] font-semibold ${light ? 'text-white' : 'text-ink'}`}
+        >
+          {label}
+        </InlineLabel>
+      ) : (
+        <ButtonLabel
+          className={`text-[15px] font-semibold ${light ? 'text-white' : 'text-ink'}`}
+        >
+          {label}
+        </ButtonLabel>
+      )}
     </Pressable>
   );
 }
@@ -192,8 +226,10 @@ export function AuthError({ message }: { message: string | null }) {
 
 export function AuthLink({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} className="mt-4 items-center py-1">
-      <Text className="text-sm font-semibold text-[#2563EB]">{label}</Text>
+    <Pressable onPress={onPress} className="mt-4 self-stretch py-1">
+      <ButtonLabel className="text-sm font-semibold" style={{ color: BRAND_BLUE }}>
+        {label}
+      </ButtonLabel>
     </Pressable>
   );
 }

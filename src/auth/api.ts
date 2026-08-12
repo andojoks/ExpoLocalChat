@@ -117,6 +117,13 @@ export function forgotPassword(identifier: string) {
   return postAuth<{ ok: boolean }>('/api/mobile/auth/forgot-password', { identifier });
 }
 
+export function verifyPasswordResetOtp(identifier: string, code: string) {
+  return postAuth<{ ok: boolean }>('/api/mobile/auth/verify-password-reset-otp', {
+    identifier,
+    code,
+  });
+}
+
 export function resetPassword(
   identifier: string,
   code: string,

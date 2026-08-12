@@ -2,22 +2,27 @@ import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
-  ScrollView,
   View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import Animated, {
+  useAnimatedScrollHandler,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { useAuth } from '@/auth/AuthProvider';
 import { useFloatingTabClearance } from '@/components/app-tab-bar';
-import { HomeWelcome } from '@/components/home/home-welcome';
+import {
+  HomeWelcome,
+  homeHeaderHeights,
+} from '@/components/home/home-welcome';
 import {
   HomePacksSection,
-  packHomeStatus,
-  type PackHomeStatus,
 } from '@/components/home/home-packs';
 import { HomeRecentSection } from '@/components/home/home-recent';
-import { listMyPacks, type LearnerPackSummary } from '@/subscription/api';
+import { HomeStreakSection } from '@/components/home/home-streak';
+import { listMyPacks, type LearnerPackSummary, type PackCourse } from '@/subscription/api';
 import { cacheGetPacks, cacheSetPacks } from '@/subscription/cache';
 import {
   cacheGetStreak,
@@ -47,12 +52,20 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabClearance = useFloatingTabClearance();
+  const scrollY = useSharedValue(0);
+  const { expanded: headerExpanded } = homeHeaderHeights(insets.top);
 
   const [packs, setPacks] = useState<LearnerPackSummary[]>([]);
   const [streak, setStreak] = useState<StreakSnapshot | null>(null);
   const [recent, setRecent] = useState<RecentStudyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
 
   const load = useCallback(async (_opts?: { refresh?: boolean }) => {
     const [cachedPacks, cachedStreak, recentItems] = await Promise.all([
@@ -93,14 +106,17 @@ export default function HomeScreen() {
     () => (user?.name || user?.email || '?').slice(0, 1).toUpperCase(),
     [user],
   );
-  const activePackCount = useMemo(
-    () => packs.filter((p) => packHomeStatus(p) === 'active').length,
-    [packs],
-  );
 
-  const openPack = useCallback(
-    (pack: LearnerPackSummary, _status: PackHomeStatus) => {
-      router.push(`/(tabs)/account/subscriptions/${pack.id}` as never);
+  const openCourse = useCallback(
+    (pack: LearnerPackSummary, course: PackCourse) => {
+      router.push({
+        pathname: '/(tabs)/packs/[categoryCode]/[subjectCode]',
+        params: {
+          categoryCode: pack.category.code,
+          subjectCode: course.code,
+          from: 'home',
+        },
+      });
     },
     [router],
   );
@@ -109,51 +125,59 @@ export default function HomeScreen() {
     <View className="flex-1 bg-[#E8EEF5]">
       <StatusBar style="light" />
       {loading && packs.length === 0 && !streak ? (
-        <View className="flex-1 items-center justify-center bg-[#0B1424]">
-          <ActivityIndicator color="#38BDF8" />
+        <View className="flex-1 items-center justify-center bg-[#0548E8]">
+          <ActivityIndicator color="#FFFFFF" />
         </View>
       ) : (
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{ paddingBottom: tabClearance }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                void load({ refresh: true });
-              }}
-              tintColor="#38BDF8"
-              progressViewOffset={insets.top}
-            />
-          }
-        >
+        <View className="flex-1">
           <HomeWelcome
             name={name}
             initial={initial}
-            streak={streak}
-            activePackCount={activePackCount}
             topInset={insets.top}
+            scrollY={scrollY}
           />
 
-          <View className="bg-[#E8EEF5] px-5 pt-6">
-            <HomePacksSection
-              packs={packs}
-              onOpenPack={openPack}
-              onCreatePack={() =>
-                router.push('/(tabs)/account/subscriptions/build' as never)
-              }
-              onManagePacks={() =>
-                router.push('/(tabs)/account/subscriptions' as never)
-              }
-            />
+          <Animated.ScrollView
+            className="flex-1"
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            contentContainerStyle={{
+              paddingTop: headerExpanded,
+              paddingBottom: tabClearance,
+            }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => {
+                  setRefreshing(true);
+                  void load({ refresh: true });
+                }}
+                tintColor="#0548E8"
+                progressViewOffset={headerExpanded}
+              />
+            }
+          >
+            <View className="bg-[#E8EEF5] px-5 pt-6">
+              <HomeStreakSection streak={streak} />
 
-            <HomeRecentSection
-              items={recent}
-              onOpen={(item) => router.push(item.href as never)}
-            />
-          </View>
-        </ScrollView>
+              <HomeRecentSection
+                items={recent}
+                onOpen={(item) => router.push(item.href as never)}
+              />
+
+              <HomePacksSection
+                packs={packs}
+                onOpenCourse={openCourse}
+                onCreatePack={() =>
+                  router.push('/(tabs)/account/subscriptions/build' as never)
+                }
+                onManagePacks={() =>
+                  router.push('/(tabs)/account/subscriptions' as never)
+                }
+              />
+            </View>
+          </Animated.ScrollView>
+        </View>
       )}
     </View>
   );

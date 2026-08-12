@@ -11,9 +11,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { Ionicons } from '@expo/vector-icons';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
-  SUB_PAGE_BG,
   SubBanner,
-  SubCard,
   SubFooterBar,
   SubInkHeader,
 } from '@/components/subscriptions/sub-chrome';
@@ -26,6 +24,7 @@ import { listMyPacks, type LearnerPackSummary } from '@/subscription/api';
 import { cacheGetPacks, cacheSetPacks } from '@/subscription/cache';
 import { recordRecentStudy } from '@/study/recent-history';
 import { recordStudyActivity } from '@/study/streak-api';
+import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 function findLearnerPack(
   packs: LearnerPackSummary[],
@@ -316,7 +315,7 @@ export default function PaperStudyScreen() {
         : null;
 
   return (
-    <View className="flex-1" style={{ backgroundColor: SUB_PAGE_BG }}>
+    <View className="flex-1 bg-white">
       <SubInkHeader
         title={title}
         subtitle={subtitle}
@@ -349,9 +348,9 @@ export default function PaperStudyScreen() {
                     onPress={() => goToIndex(i)}
                     className="min-w-[36px] items-center justify-center rounded-2xl px-2.5 py-1.5"
                     style={{
-                      backgroundColor: active ? '#2563EB' : 'rgba(255,255,255,0.08)',
+                      backgroundColor: active ? '#0548E8' : 'rgba(255,255,255,0.08)',
                       borderWidth: 1,
-                      borderColor: active ? '#2563EB' : 'rgba(148,163,184,0.28)',
+                      borderColor: active ? '#0548E8' : 'rgba(148,163,184,0.28)',
                     }}
                   >
                     <Text
@@ -376,7 +375,7 @@ export default function PaperStudyScreen() {
 
       {bootLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#2563EB" />
+          <ActivityIndicator color="#0548E8" />
         </View>
       ) : items.length === 0 ? (
         <View className="items-center px-6 py-16">
@@ -389,24 +388,21 @@ export default function PaperStudyScreen() {
             onSwipeLeft={goNext}
             onSwipeRight={goPrev}
           >
-            <ScrollView
-              className="flex-1"
-              contentContainerStyle={{ padding: 20, paddingBottom: 24 }}
-            >
-              <View className="gap-3">
+            <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
+              <View className="flex-1 bg-white">
                 {topics.length > 0 ? (
-                  <View className="flex-row flex-wrap gap-2">
+                  <View className="flex-row flex-wrap gap-2 border-b border-[#E8EEF4] px-3 py-2.5">
                     {topics.map((topic) => (
                       <View
                         key={topic}
                         className="rounded-full px-3 py-1.5"
                         style={{
-                          backgroundColor: '#FFFFFF',
+                          backgroundColor: '#EFF6FF',
                           borderWidth: 1,
                           borderColor: '#BFDBFE',
                         }}
                       >
-                        <Text className="text-xs font-semibold text-[#1D4ED8]">{topic}</Text>
+                        <Text className="text-xs font-semibold text-[#0439C4]">{topic}</Text>
                       </View>
                     ))}
                   </View>
@@ -415,12 +411,8 @@ export default function PaperStudyScreen() {
                 {!canReveal ? (
                   <Pressable
                     onPress={onLockedPress}
-                    className="flex-row items-center gap-2 rounded-2xl px-3.5 py-3"
-                    style={{
-                      borderWidth: 1,
-                      borderColor: '#FDE68A',
-                      backgroundColor: '#FFFBEB',
-                    }}
+                    className="flex-row items-center gap-2 border-b border-[#FDE68A] px-3.5 py-3"
+                    style={{ backgroundColor: '#FFFBEB' }}
                   >
                     <Ionicons name="lock-closed" size={14} color="#B45309" />
                     <Text className="flex-1 text-xs font-semibold text-[#92400E]">
@@ -429,10 +421,10 @@ export default function PaperStudyScreen() {
                   </Pressable>
                 ) : null}
 
-                <SubCard>
+                <View className="bg-white">
                   {contentLoading && !docHtml ? (
                     <View className="items-center py-10">
-                      <ActivityIndicator color="#2563EB" />
+                      <ActivityIndicator color="#0548E8" />
                     </View>
                   ) : docHtml ? (
                     <QuestionHtmlView
@@ -448,7 +440,7 @@ export default function PaperStudyScreen() {
                       <Text className="text-sm text-slate-500">Unable to load this question.</Text>
                     </View>
                   )}
-                </SubCard>
+                </View>
               </View>
             </ScrollView>
           </StudySwipeArea>
@@ -460,7 +452,7 @@ export default function PaperStudyScreen() {
                   disabled={!prev}
                   onPress={() => goToIndex(index - 1)}
                   className="h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl"
-                  style={{ backgroundColor: prev ? '#0B1424' : '#E2E8F0' }}
+                  style={{ backgroundColor: prev ? '#0548E8' : '#E2E8F0' }}
                 >
                   <Ionicons
                     name="chevron-back"
@@ -469,6 +461,8 @@ export default function PaperStudyScreen() {
                   />
                   <Text
                     className={`text-sm font-bold ${prev ? 'text-white' : 'text-slate-400'}`}
+                    numberOfLines={1}
+                    style={LABEL_TEXT_ANDROID}
                   >
                     Previous
                   </Text>
@@ -477,10 +471,12 @@ export default function PaperStudyScreen() {
                   disabled={!next}
                   onPress={() => goToIndex(index + 1)}
                   className="h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl"
-                  style={{ backgroundColor: next ? '#0B1424' : '#E2E8F0' }}
+                  style={{ backgroundColor: next ? '#0548E8' : '#E2E8F0' }}
                 >
                   <Text
                     className={`text-sm font-bold ${next ? 'text-white' : 'text-slate-400'}`}
+                    numberOfLines={1}
+                    style={LABEL_TEXT_ANDROID}
                   >
                     Next
                   </Text>

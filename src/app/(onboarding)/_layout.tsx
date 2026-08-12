@@ -6,7 +6,7 @@ export default function OnboardingLayout() {
       screenOptions={{
         headerShown: false,
         animation: 'fade',
-        contentStyle: { backgroundColor: '#0B1424' },
+        contentStyle: { backgroundColor: '#0548E8' },
       }}
     />
   );

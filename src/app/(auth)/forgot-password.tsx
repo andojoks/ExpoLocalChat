@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   AuthError,
@@ -8,6 +8,7 @@ import {
   AuthScreenShell,
 } from '@/components/auth/auth-ui';
 import { useAuth } from '@/auth/AuthProvider';
+import { setPendingAuth } from '@/auth/pending-auth';
 
 export default function ForgotPasswordScreen() {
   const { forgotPassword } = useAuth();
@@ -20,10 +21,12 @@ export default function ForgotPasswordScreen() {
     setError(null);
     setBusy(true);
     try {
-      await forgotPassword(identifier.trim());
+      const trimmed = identifier.trim();
+      await forgotPassword(trimmed);
+      await setPendingAuth({ screen: 'verify-password-reset', identifier: trimmed });
       router.push({
-        pathname: '/(auth)/reset-password',
-        params: { identifier: identifier.trim() },
+        pathname: '/(auth)/verify-password-reset',
+        params: { identifier: trimmed },
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Request failed');
@@ -38,24 +41,22 @@ export default function ForgotPasswordScreen() {
       subtitle="Enter your email or phone. If an account exists, we’ll email a reset code."
       showBack
     >
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
-        <AuthError message={error} />
-        <AuthField
-          label="Email or phone"
-          autoCapitalize="none"
-          value={identifier}
-          onChangeText={setIdentifier}
-          placeholder="you@school.edu"
-        />
-        <AuthPrimaryButton
-          label={busy ? 'Sending…' : 'Send reset code'}
-          disabled={busy || !identifier.trim()}
-          onPress={onSubmit}
-        />
-        <Text className="mt-4 text-center text-xs text-[#94A3B8]">
-          For phone logins, the code is sent to the email on that account.
-        </Text>
-      </ScrollView>
+      <AuthError message={error} />
+      <AuthField
+        label="Email or phone"
+        autoCapitalize="none"
+        value={identifier}
+        onChangeText={setIdentifier}
+        placeholder="you@school.edu"
+      />
+      <AuthPrimaryButton
+        label={busy ? 'Sending…' : 'Send reset code'}
+        disabled={busy || !identifier.trim()}
+        onPress={onSubmit}
+      />
+      <Text className="mt-4 text-center text-xs text-[#94A3B8]">
+        For phone logins, the code is sent to the email on that account.
+      </Text>
     </AuthScreenShell>
   );
 }

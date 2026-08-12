@@ -73,7 +73,7 @@ export function StudyContent({
         className="items-center justify-center"
         style={{ height: preview ? previewMaxHeight : undefined, paddingVertical: preview ? 0 : 16 }}
       >
-        <ActivityIndicator color="#2563EB" />
+        <ActivityIndicator color="#0548E8" />
       </View>
     );
   }

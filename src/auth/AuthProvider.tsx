@@ -28,12 +28,16 @@ import {
   isAccountSuspendedError,
   setForcedLogoutHandler,
 } from '@/auth/account-suspended';
+import { SETUP_STEPS, type SetupProgress } from '@/auth/setup-progress';
+import { clearPendingAuth } from '@/auth/pending-auth';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
 type AuthContextValue = {
   status: AuthStatus;
   user: AuthUser | null;
+  /** Cold-start bootstrap progress while status is `loading`. */
+  setupProgress: SetupProgress | null;
   signInWithPassword: (identifier: string, password: string) => Promise<void>;
   signUp: (input: {
     name?: string;
@@ -44,6 +48,7 @@ type AuthContextValue = {
   verifyEmail: (email: string, code: string) => Promise<void>;
   resendOtp: (email: string, purpose: 'EMAIL_VERIFY' | 'PASSWORD_RESET') => Promise<void>;
   forgotPassword: (identifier: string) => Promise<void>;
+  verifyPasswordResetOtp: (identifier: string, code: string) => Promise<void>;
   resetPassword: (identifier: string, code: string, newPassword: string) => Promise<void>;
   signInWithGoogle: (idToken: string) => Promise<void>;
   updateProfile: (patch: { name?: string | null; phone?: string | null }) => Promise<void>;
@@ -52,6 +57,14 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+const AUTH_REVOKE_CODES = new Set([
+  'DEVICE_SUPERSEDED',
+  'AUTH_REVOKED',
+  'NO_DEVICE_SESSION',
+  'INVALID_TOKEN',
+  'MISSING_DEVICE_ID',
+]);
 
 function userFromAccessToken(accessToken: string): AuthUser | null {
   const payload = decodeJwtPayload(accessToken);
@@ -98,10 +111,39 @@ function rethrowAuthError(err: unknown): never {
   throw err;
 }
 
+function warmPostAuthSideEffects() {
+  void import('@/notifications/register-push').then((m) =>
+    m.registerPushInBackground({ requestPermission: false }),
+  );
+  void import('@/notifications/study-reminders').then((m) =>
+    m.syncStudyRemindersOnLaunch(),
+  );
+}
+
+/** Let React paint setup progress before a long sync task (e.g. RSA) blocks the JS thread. */
+function yieldForUiPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const db = useSQLiteContext();
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [setupProgress, setSetupProgress] = useState<SetupProgress | null>(SETUP_STEPS.storage);
+
+  const finishBootstrap = useCallback((next: AuthStatus, nextUser: AuthUser | null) => {
+    setSetupProgress(SETUP_STEPS.finish);
+    setUser(nextUser);
+    setStatus(next);
+    setSetupProgress(null);
+    if (next === 'authenticated') {
+      void clearPendingAuth();
+    }
+  }, []);
 
   const clearLocalSession = useCallback(async () => {
     try {
@@ -114,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await dropPackContentKey();
     setUser(null);
     setStatus('unauthenticated');
+    setSetupProgress(null);
   }, []);
 
   useEffect(() => {
@@ -121,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await dropPackContentKey();
       setUser(null);
       setStatus('unauthenticated');
+      setSetupProgress(null);
     });
     return () => setForcedLogoutHandler(null);
   }, []);
@@ -134,43 +178,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.warn('[auth] pack key sync failed', e);
       }
-      void import('@/notifications/study-reminders').then((m) =>
-        m.syncStudyRemindersOnLaunch(),
-      );
+      await clearPendingAuth();
+      warmPostAuthSideEffects();
       return tokens.user;
     },
     [db],
   );
 
   const refreshSession = useCallback(async () => {
-    // Always establish device id (+ keys) on launch, in parallel — same as before, without serial stalls.
-    await Promise.all([
-      ensureDeviceKeyPair().catch(() => undefined),
-      getStableDeviceId().catch(() => undefined),
-    ]);
+    setStatus('loading');
+    setSetupProgress(SETUP_STEPS.storage);
 
+    await getStableDeviceId().catch(() => undefined);
     const access = await getAccessToken();
     const refresh = await getRefreshToken();
+
+    // Await device crypto so first-launch RSA shows as step 2 (not a frozen spinner).
+    setSetupProgress(SETUP_STEPS.secure);
+    await yieldForUiPaint();
+    await ensureDeviceKeyPair().catch(() => undefined);
+
     if (!access && !refresh) {
-      setUser(null);
-      setStatus('unauthenticated');
+      finishBootstrap('unauthenticated', null);
       return;
+    }
+
+    setSetupProgress(SETUP_STEPS.session);
+
+    // Everlasting JWT: paint authenticated after local checks; refresh profile in background.
+    if (access && isEverlastingMobileAccessToken(access)) {
+      const stub = userFromAccessToken(access);
+      if (stub) {
+        await reconcileContentOwner(db, stub.id).catch(() => undefined);
+        setSetupProgress(SETUP_STEPS.finish);
+        finishBootstrap('authenticated', stub);
+
+        void (async () => {
+          try {
+            const me = await authApi.fetchMe(access);
+            await reconcileContentOwner(db, me.id);
+            setUser(me);
+            try {
+              await syncPackContentKey();
+            } catch {
+              /* optional until first pack install */
+            }
+            warmPostAuthSideEffects();
+          } catch (e) {
+            const statusCode = (e as { status?: number })?.status;
+            const code = (e as { code?: string })?.code;
+            if (isAccountSuspendedError(e)) {
+              await forceAccountSuspendedLogout((e as Error).message);
+              return;
+            }
+            if (statusCode === 401 && code && AUTH_REVOKE_CODES.has(code)) {
+              if (code === 'DEVICE_SUPERSEDED') notifyDeviceSuperseded(e);
+              await clearLocalSession();
+            }
+            // Opaque 401 / network: keep stub session.
+          }
+        })();
+        return;
+      }
     }
 
     if (access) {
       try {
         const me = await authApi.fetchMe(access);
         await reconcileContentOwner(db, me.id);
-        setUser(me);
-        setStatus('authenticated');
+        setSetupProgress(SETUP_STEPS.finish);
         try {
           await syncPackContentKey();
         } catch {
           /* optional until first pack install */
         }
-        void import('@/notifications/study-reminders').then((m) =>
-          m.syncStudyRemindersOnLaunch(),
-        );
+        warmPostAuthSideEffects();
+        finishBootstrap('authenticated', me);
         return;
       } catch (e) {
         const statusCode = (e as { status?: number })?.status;
@@ -179,48 +262,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await forceAccountSuspendedLogout((e as Error).message);
           return;
         }
-        // Revoked / mismatched / superseded device — never refresh-steal a session.
-        if (statusCode === 401 && isEverlastingMobileAccessToken(access)) {
+        if (statusCode === 401 && code && AUTH_REVOKE_CODES.has(code)) {
           if (code === 'DEVICE_SUPERSEDED') notifyDeviceSuperseded(e);
           await clearLocalSession();
           return;
         }
-        // Offline / transient: keep authenticated path if everlasting token looks valid.
-        if (statusCode !== 401 && statusCode !== 403 && isEverlastingMobileAccessToken(access)) {
-          const stub = userFromAccessToken(access);
-          if (stub) {
-            await reconcileContentOwner(db, stub.id).catch(() => undefined);
-            setUser(stub);
-            setStatus('authenticated');
-            return;
-          }
-        }
-        // Short-lived access 401 falls through to refresh below.
+        // Short-lived access 401 / transient falls through to refresh below.
       }
     }
 
     if (refresh) {
       try {
+        setSetupProgress(SETUP_STEPS.secure);
+        await yieldForUiPaint();
         const device = await withDeviceAuth();
+        setSetupProgress(SETUP_STEPS.session);
+        await yieldForUiPaint();
         const pair = await authApi.refresh(refresh, device);
+        setSetupProgress(SETUP_STEPS.finish);
         const nextUser = await applySession(pair);
-        setUser(nextUser);
-        setStatus('authenticated');
+        finishBootstrap('authenticated', nextUser);
         return;
       } catch (e) {
         if (isAccountSuspendedError(e)) {
           await forceAccountSuspendedLogout((e as Error).message);
           return;
         }
-        notifyDeviceSuperseded(e);
+        const code = (e as { code?: string })?.code;
+        if (code === 'DEVICE_SUPERSEDED') notifyDeviceSuperseded(e);
         await clearTokens();
         await dropPackContentKey();
       }
     }
 
-    setUser(null);
-    setStatus('unauthenticated');
-  }, [applySession, clearLocalSession, db]);
+    finishBootstrap('unauthenticated', null);
+  }, [applySession, clearLocalSession, db, finishBootstrap]);
 
   useEffect(() => {
     void refreshSession();
@@ -275,6 +351,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const forgotPassword = useCallback(async (identifier: string) => {
     await authApi.forgotPassword(identifier);
+  }, []);
+
+  const verifyPasswordResetOtp = useCallback(async (identifier: string, code: string) => {
+    await authApi.verifyPasswordResetOtp(identifier, code);
   }, []);
 
   const resetPassword = useCallback(
@@ -340,11 +420,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       status,
       user,
+      setupProgress,
       signInWithPassword,
       signUp,
       verifyEmail,
       resendOtp,
       forgotPassword,
+      verifyPasswordResetOtp,
       resetPassword,
       signInWithGoogle,
       updateProfile,
@@ -354,11 +436,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       status,
       user,
+      setupProgress,
       signInWithPassword,
       signUp,
       verifyEmail,
       resendOtp,
       forgotPassword,
+      verifyPasswordResetOtp,
       resetPassword,
       signInWithGoogle,
       updateProfile,

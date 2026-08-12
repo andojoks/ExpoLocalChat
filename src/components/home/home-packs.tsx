@@ -1,7 +1,9 @@
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import type { LearnerPackSummary } from '@/subscription/api';
+import type { LearnerPackSummary, PackCourse } from '@/subscription/api';
 import { formatDateDmY, formatDaysLeft, daysLeftUntil } from '@/subscription/dates';
+import { BRAND_BLUE } from '@/theme/brand';
+import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 export type PackHomeStatus = 'active' | 'expired' | 'unpaid';
 
@@ -17,7 +19,6 @@ function statusMeta(status: PackHomeStatus) {
       label: 'Active',
       tone: '#0F766E',
       wash: '#ECFDF5',
-      ring: '#99F6E4',
     };
   }
   if (status === 'expired') {
@@ -25,31 +26,23 @@ function statusMeta(status: PackHomeStatus) {
       label: 'Expired',
       tone: '#B45309',
       wash: '#FFFBEB',
-      ring: '#FDE68A',
     };
   }
   return {
     label: 'Unpaid',
     tone: '#64748B',
     wash: '#F1F5F9',
-    ring: '#E2E8F0',
   };
-}
-
-function ctaFor(status: PackHomeStatus) {
-  if (status === 'active') return 'Open';
-  if (status === 'expired') return 'Renew access';
-  return 'Activate';
 }
 
 export function HomePacksSection({
   packs,
-  onOpenPack,
+  onOpenCourse,
   onCreatePack,
   onManagePacks,
 }: {
   packs: LearnerPackSummary[];
-  onOpenPack: (pack: LearnerPackSummary, status: PackHomeStatus) => void;
+  onOpenCourse: (pack: LearnerPackSummary, course: PackCourse) => void;
   onCreatePack: () => void;
   onManagePacks: () => void;
 }) {
@@ -57,7 +50,10 @@ export function HomePacksSection({
     <View className="mb-8">
       <View className="mb-4 flex-row items-end justify-between px-0.5">
         <View>
-          <Text className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+          <Text
+            className="text-[11px] font-semibold uppercase text-[#94A3B8]"
+            style={[LABEL_TEXT_ANDROID, { letterSpacing: 2.0 }]}
+          >
             Subscriptions
           </Text>
           <Text className="mt-1 text-[22px] font-black tracking-tight text-ink">
@@ -65,7 +61,9 @@ export function HomePacksSection({
           </Text>
         </View>
         <Pressable onPress={onManagePacks} hitSlop={10} className="pb-1">
-          <Text className="text-[13px] font-semibold text-[#2563EB]">Manage</Text>
+          <Text className="text-[13px] font-semibold" style={{ color: BRAND_BLUE }}>
+            Manage
+          </Text>
         </Pressable>
       </View>
 
@@ -74,16 +72,19 @@ export function HomePacksSection({
           className="rounded-[24px] bg-white px-5 py-6"
           style={{
             borderWidth: 1,
-            borderColor: '#E2E8F0',
+            borderColor: '#E8EEF4',
             shadowColor: '#0B1424',
-            shadowOpacity: 0.06,
-            shadowRadius: 18,
-            shadowOffset: { width: 0, height: 8 },
-            elevation: 3,
+            shadowOpacity: 0.05,
+            shadowRadius: 16,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 2,
           }}
         >
-          <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl bg-[#0B1424]">
-            <Ionicons name="layers-outline" size={22} color="#FFFFFF" />
+          <View
+            className="mb-4 h-12 w-12 items-center justify-center rounded-[14px]"
+            style={{ backgroundColor: '#EFF6FF' }}
+          >
+            <Ionicons name="layers-outline" size={22} color={BRAND_BLUE} />
           </View>
           <Text className="text-[18px] font-black tracking-tight text-ink">
             Unlock your first pack
@@ -93,9 +94,16 @@ export function HomePacksSection({
           </Text>
           <Pressable
             onPress={onCreatePack}
-            className="mt-5 items-center rounded-2xl bg-[#0B1424] py-3.5"
+            className="mt-5 rounded-2xl py-3.5"
+            style={{ backgroundColor: BRAND_BLUE }}
           >
-            <Text className="text-[14px] font-bold text-white">Create pack</Text>
+            <Text
+              numberOfLines={1}
+              className="text-[14px] font-bold text-white"
+              style={[LABEL_TEXT_ANDROID, { width: '100%', textAlign: 'center' }]}
+            >
+              Create pack
+            </Text>
           </Pressable>
         </View>
       ) : (
@@ -108,9 +116,8 @@ export function HomePacksSection({
                 ? daysLeftUntil(pack.activeSubscription?.expiresAt)
                 : null;
             return (
-              <Pressable
+              <View
                 key={pack.id}
-                onPress={() => onOpenPack(pack, status)}
                 className="rounded-[24px] bg-white px-4 py-4"
                 style={{
                   borderWidth: 1,
@@ -122,98 +129,113 @@ export function HomePacksSection({
                   elevation: 2,
                 }}
               >
-                <View className="flex-row items-start gap-3.5">
-                  <View
-                    className="h-12 w-12 items-center justify-center rounded-[16px]"
-                    style={{ backgroundColor: meta.wash, borderWidth: 1, borderColor: meta.ring }}
-                  >
-                    <Text className="text-[15px] font-black" style={{ color: meta.tone }}>
-                      {pack.category.code?.slice(0, 2).toUpperCase() || 'EL'}
+                <View className="min-w-0">
+                  <View className="flex-row items-center gap-2">
+                    <Text
+                      className="min-w-0 flex-1 text-[16px] font-bold tracking-tight text-ink"
+                      numberOfLines={1}
+                      style={
+                        Platform.OS === 'android'
+                          ? { includeFontPadding: false, paddingRight: 2 }
+                          : undefined
+                      }
+                    >
+                      {pack.category.name}
                     </Text>
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <View className="flex-row items-center gap-2">
+                    <View
+                      className="shrink-0 rounded-full px-3 py-1"
+                      style={{ backgroundColor: meta.wash }}
+                    >
                       <Text
-                        className="min-w-0 flex-1 text-[16px] font-bold tracking-tight text-ink"
+                        className="text-[10px] font-bold uppercase"
                         numberOfLines={1}
+                        style={[
+                          LABEL_TEXT_ANDROID,
+                          {
+                            color: meta.tone,
+                            letterSpacing: 0.6,
+                            paddingRight: Platform.OS === 'android' ? 4 : 0,
+                          },
+                        ]}
                       >
-                        {pack.category.name}
+                        {meta.label}
                       </Text>
-                      <View
-                        className="rounded-full px-2.5 py-1"
-                        style={{ backgroundColor: meta.wash }}
-                      >
-                        <Text className="text-[10px] font-bold uppercase tracking-wide" style={{ color: meta.tone }}>
-                          {meta.label}
-                        </Text>
-                      </View>
                     </View>
+                  </View>
 
-                    {status === 'active' && pack.activeSubscription ? (
-                      <Text className="mt-1.5 text-[13px] text-slate-500">
-                        {formatDaysLeft(pack.activeSubscription.expiresAt)}
-                        {pack.activeSubscription.expiresAt
-                          ? ` · ${formatDateDmY(pack.activeSubscription.expiresAt)}`
-                          : ''}
-                      </Text>
-                    ) : status === 'expired' ? (
-                      <Text className="mt-1.5 text-[13px] text-slate-500">
-                        Renew to restore answer unlocks
-                      </Text>
-                    ) : (
-                      <Text className="mt-1.5 text-[13px] text-slate-500">
-                        Ready to activate with MoMo
-                      </Text>
-                    )}
-
-                    <Text className="mt-2 text-[12px] text-[#94A3B8]" numberOfLines={1}>
-                      {pack.courses.length} course{pack.courses.length === 1 ? '' : 's'}
-                      {pack.courses.length
-                        ? ` · ${pack.courses
-                            .slice(0, 2)
-                            .map((c) => c.name)
-                            .join(', ')}${pack.courses.length > 2 ? '…' : ''}`
+                  {status === 'active' && pack.activeSubscription ? (
+                    <Text
+                      className="mt-1.5 text-[13px] text-slate-500"
+                      numberOfLines={1}
+                      style={LABEL_TEXT_ANDROID}
+                    >
+                      {formatDaysLeft(pack.activeSubscription.expiresAt)}
+                      {pack.activeSubscription.expiresAt
+                        ? ` · ${formatDateDmY(pack.activeSubscription.expiresAt)}`
                         : ''}
                     </Text>
+                  ) : status === 'expired' ? (
+                    <Text
+                      className="mt-1.5 text-[13px] text-slate-500"
+                      numberOfLines={1}
+                      style={LABEL_TEXT_ANDROID}
+                    >
+                      Renew to restore answer unlocks
+                    </Text>
+                  ) : (
+                    <Text
+                      className="mt-1.5 text-[13px] text-slate-500"
+                      numberOfLines={1}
+                      style={LABEL_TEXT_ANDROID}
+                    >
+                      Ready to activate with MoMo
+                    </Text>
+                  )}
 
-                    {status === 'active' && daysLeft != null ? (
-                      <View className="mt-3.5 h-1.5 overflow-hidden rounded-full bg-[#EEF2F7]">
-                        <View
-                          className="h-full rounded-full bg-[#38BDF8]"
-                          style={{
-                            width: `${Math.max(8, Math.min(100, (daysLeft / 30) * 100))}%`,
-                          }}
-                        />
-                      </View>
-                    ) : null}
-
-                    <View className="mt-3.5 flex-row items-center justify-between">
-                      <Text className="text-[13px] font-bold text-[#0B1424]">
-                        {ctaFor(status)}
-                      </Text>
-                      <View className="h-8 w-8 items-center justify-center rounded-full bg-[#F1F5F9]">
-                        <Ionicons name="arrow-forward" size={15} color="#0B1424" />
-                      </View>
+                  {status === 'active' && daysLeft != null ? (
+                    <View className="mt-3.5 h-1.5 overflow-hidden rounded-full bg-[#EEF2F7]">
+                      <View
+                        className="h-full rounded-full"
+                        style={{
+                          backgroundColor: BRAND_BLUE,
+                          width: `${Math.max(8, Math.min(100, (daysLeft / 30) * 100))}%`,
+                        }}
+                      />
                     </View>
+                  ) : null}
+
+                  <View className="mt-3.5 overflow-hidden rounded-2xl bg-[#F8FAFC]">
+                    {pack.courses.length === 0 ? (
+                      <Text className="px-3.5 py-3 text-[13px] text-slate-400">
+                        No courses selected yet
+                      </Text>
+                    ) : (
+                      pack.courses.map((course, idx) => (
+                        <Pressable
+                          key={course.id}
+                          onPress={() => onOpenCourse(pack, course)}
+                          className={`flex-row items-center gap-3 px-3.5 py-3 ${
+                            idx > 0 ? 'border-t border-[#E8EEF4]' : ''
+                          }`}
+                        >
+                          <View className="h-9 w-9 items-center justify-center rounded-[12px] bg-white">
+                            <Ionicons name="book-outline" size={16} color={BRAND_BLUE} />
+                          </View>
+                          <Text
+                            className="min-w-0 flex-1 text-[14px] font-semibold text-ink"
+                            numberOfLines={2}
+                          >
+                            {course.name}
+                          </Text>
+                          <Ionicons name="chevron-forward" size={15} color="#94A3B8" />
+                        </Pressable>
+                      ))
+                    )}
                   </View>
                 </View>
-              </Pressable>
+              </View>
             );
           })}
-
-          <Pressable
-            onPress={onCreatePack}
-            className="flex-row items-center justify-center gap-2 rounded-[22px] py-3.5"
-            style={{
-              borderWidth: 1,
-              borderStyle: 'dashed',
-              borderColor: '#CBD5E1',
-              backgroundColor: 'rgba(255,255,255,0.55)',
-            }}
-          >
-            <Ionicons name="add" size={18} color="#2563EB" />
-            <Text className="text-[14px] font-semibold text-[#2563EB]">Add another pack</Text>
-          </Pressable>
         </View>
       )}
     </View>

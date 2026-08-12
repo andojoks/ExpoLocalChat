@@ -19,7 +19,7 @@ export function AuthPasswordField({
 
   return (
     <View className="mb-3.5">
-      <Text className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">
+      <Text className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase text-[#94A3B8]" style={{ letterSpacing: 1.5 }}>
         {label}
       </Text>
       <View

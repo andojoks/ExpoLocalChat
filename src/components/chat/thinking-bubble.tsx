@@ -1,10 +1,11 @@
 import { useEffect, useMemo } from 'react';
 import { Animated, Text, View } from 'react-native';
 import type { AgentPhase } from '@/ai/agent';
+import { BRAND_BLUE } from '@/theme/brand';
 
 const PHASE_LABEL: Record<AgentPhase, string> = {
   plan: 'Working…',
-  tool: 'Looking up the bank…',
+  tool: 'Looking up your packs…',
   answer: 'Writing reply…',
 };
 
@@ -42,8 +43,11 @@ function TypingDots() {
       {values.map((value, index) => (
         <Animated.View
           key={index}
-          className="h-2 w-2 rounded-full bg-forest"
           style={{
+            height: 8,
+            width: 8,
+            borderRadius: 999,
+            backgroundColor: BRAND_BLUE,
             opacity: value,
             transform: [
               {

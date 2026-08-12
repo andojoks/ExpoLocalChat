@@ -133,27 +133,54 @@ function answerSolutionHtml(
 </div>`;
 }
 
-function revealHtmlForNode(node: ExamQuestionNode): string {
+function revealPanelInner(node: ExamQuestionNode): string {
   const parts: string[] = [];
   const a = answerSolutionHtml(node, 'answer');
   const s = answerSolutionHtml(node, 'solution');
   if (a) parts.push(a);
   if (s) parts.push(s);
-  if (parts.length === 0) return '';
-  return `<section class="el-q-section el-q-solutions is-hidden" data-solutions-panel aria-label="Answer and solution">
-${parts.join('\n')}
-</section>`;
+  return parts.join('\n');
 }
 
-function actionsSectionHtml(show: boolean, locked: boolean): string {
-  if (!show) return '';
-  if (locked) {
-    return `<section class="el-q-section el-q-actions">
-  <button type="button" class="el-btn el-btn--locked" data-locked-reveal="1">Show answer · Subscribe</button>
+/** Full-width accordion: tap header to expand/collapse answer + solution. */
+function answerAccordionHtml(opts: {
+  locked: boolean;
+  panelInner: string;
+  hasMcq: boolean;
+}): string {
+  if (opts.locked) {
+    return `<section class="el-answer-accordion el-answer-accordion--locked" data-answer-accordion>
+  <button type="button" class="el-answer-accordion__trigger" data-locked-reveal="1" aria-expanded="false">
+    <span class="el-answer-accordion__lead">
+      <span class="el-answer-accordion__title">Answer &amp; solution</span>
+      <span class="el-answer-accordion__hint">Subscribe to reveal</span>
+    </span>
+    <span class="el-answer-accordion__icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/></svg>
+    </span>
+  </button>
 </section>`;
   }
-  return `<section class="el-q-section el-q-actions">
-  <button type="button" class="el-btn el-toggle-answer">Show answer</button>
+
+  const emptyHint =
+    !opts.panelInner.trim() && opts.hasMcq
+      ? `<p class="el-answer-accordion__empty">Correct options are highlighted above when expanded.</p>`
+      : '';
+  const body = opts.panelInner.trim() || emptyHint;
+
+  return `<section class="el-answer-accordion" data-answer-accordion>
+  <button type="button" class="el-answer-accordion__trigger el-toggle-answer" aria-expanded="false">
+    <span class="el-answer-accordion__lead">
+      <span class="el-answer-accordion__title">Answer &amp; solution</span>
+      <span class="el-answer-accordion__hint" data-answer-hint>Tap to expand</span>
+    </span>
+    <span class="el-answer-accordion__chevron" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+  </button>
+  <div class="el-answer-accordion__panel is-hidden" data-solutions-panel aria-label="Answer and solution" hidden>
+    ${body}
+  </div>
 </section>`;
 }
 
@@ -211,8 +238,8 @@ function buildBlockHtml(
 
   const options = parseQuestionOptions(node.options as unknown[] | undefined);
   const isMcq = options.length > 0;
-  const revealHtml = opts.mode === 'detail' ? revealHtmlForNode(node) : '';
-  const hasRevealContent = Boolean(revealHtml) || isMcq;
+  const panelInner = opts.mode === 'detail' ? revealPanelInner(node) : '';
+  const hasRevealContent = Boolean(panelInner.trim()) || isMcq;
   const showToggle = opts.mode === 'detail' && hasRevealContent;
 
   const inner: string[] = [
@@ -224,10 +251,13 @@ function buildBlockHtml(
   }
 
   if (showToggle) {
-    inner.push(actionsSectionHtml(true, !opts.canReveal));
-  }
-  if (revealHtml && opts.canReveal) {
-    inner.push(revealHtml);
+    inner.push(
+      answerAccordionHtml({
+        locked: !opts.canReveal,
+        panelInner: opts.canReveal ? panelInner : '',
+        hasMcq: isMcq,
+      }),
+    );
   }
 
   // Nested parts (structural) as child articles inside detail mode
@@ -322,10 +352,17 @@ ${HEIGHT_HELPERS}
         if (correct) el.classList.add("el-option--correct");
         else if (id && id === selectedId) el.classList.add("el-option--wrong");
       });
+      var accordion = block.querySelector("[data-answer-accordion]");
+      if (accordion) accordion.classList.add("is-open");
       var panel = block.querySelector("[data-solutions-panel]");
-      if (panel) panel.classList.remove("is-hidden");
+      if (panel) {
+        panel.classList.remove("is-hidden");
+        panel.removeAttribute("hidden");
+      }
       var btn = block.querySelector(".el-toggle-answer");
-      if (btn) btn.textContent = "Hide answer";
+      if (btn) btn.setAttribute("aria-expanded", "true");
+      var hint = block.querySelector("[data-answer-hint]");
+      if (hint) hint.textContent = "Tap to collapse";
       postHeightSoon();
     }
 
@@ -337,10 +374,17 @@ ${HEIGHT_HELPERS}
         el.classList.remove("el-option--selected");
       });
       selectedId = null;
+      var accordion = block.querySelector("[data-answer-accordion]");
+      if (accordion) accordion.classList.remove("is-open");
       var panel = block.querySelector("[data-solutions-panel]");
-      if (panel) panel.classList.add("is-hidden");
+      if (panel) {
+        panel.classList.add("is-hidden");
+        panel.setAttribute("hidden", "");
+      }
       var btn = block.querySelector(".el-toggle-answer");
-      if (btn) btn.textContent = "Show answer";
+      if (btn) btn.setAttribute("aria-expanded", "false");
+      var hint = block.querySelector("[data-answer-hint]");
+      if (hint) hint.textContent = "Tap to expand";
       postHeightSoon();
     }
 

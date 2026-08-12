@@ -26,6 +26,9 @@ export type ConfirmDialogProps = {
 /**
  * Confirmation as a @gorhom/bottom-sheet modal.
  * Prefer this over `Alert.alert` for Cancel + Confirm flows.
+ *
+ * Important: buttons only call `dismiss()`. Parent state is synced from
+ * `onDismiss` so a late dismiss animation cannot clobber a subsequent open.
  */
 export function ConfirmDialog({
   visible,
@@ -42,10 +45,50 @@ export function ConfirmDialog({
   const ref = useRef<BottomSheetModal>(null);
   const renderBackdrop = useSheetBackdrop();
 
+  /** Tracks what the next `onDismiss` should report to the parent. */
+  const pendingRef = useRef<'none' | 'cancel' | 'confirm'>('none');
+  /** Mirrors `visible` for dismiss handlers without stale closures. */
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
+
+  const onCancelRef = useRef(onCancel);
+  const onConfirmRef = useRef(onConfirm);
+  onCancelRef.current = onCancel;
+  onConfirmRef.current = onConfirm;
+
   useEffect(() => {
-    if (visible) ref.current?.present();
-    else ref.current?.dismiss();
+    if (visible) {
+      pendingRef.current = 'none';
+      // Defer present so it runs after any in-flight dismiss from a prior close.
+      const id = requestAnimationFrame(() => {
+        ref.current?.present();
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    ref.current?.dismiss();
   }, [visible]);
+
+  const handleDismiss = useCallback(() => {
+    const action = pendingRef.current;
+    pendingRef.current = 'none';
+
+    if (action === 'confirm') {
+      onConfirmRef.current();
+      return;
+    }
+
+    // Swipe / backdrop / cancel button / controlled `visible=false`.
+    // Only notify parent when it still thinks we're open — prevents a late
+    // dismiss from wiping a brand-new `ask()` that already set visible=true.
+    if (action === 'cancel' || visibleRef.current) {
+      onCancelRef.current();
+    }
+  }, []);
+
+  const requestClose = useCallback((action: 'cancel' | 'confirm') => {
+    pendingRef.current = action;
+    ref.current?.dismiss();
+  }, []);
 
   const resolvedIcon =
     icon || (destructive ? 'warning-outline' : 'help-circle-outline');
@@ -55,13 +98,20 @@ export function ConfirmDialog({
       ref={ref}
       enableDynamicSizing
       enablePanDownToClose
-      onDismiss={onCancel}
+      onDismiss={handleDismiss}
       backdropComponent={renderBackdrop}
       handleComponent={SheetHandle}
-      backgroundStyle={{ backgroundColor: SHEET_BG, borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
+      backgroundStyle={{
+        backgroundColor: SHEET_BG,
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+      }}
     >
       <BottomSheetView
-        style={{ paddingHorizontal: 20, paddingBottom: Math.max(insets.bottom, 16) }}
+        style={{
+          paddingHorizontal: 20,
+          paddingBottom: Math.max(insets.bottom, 16),
+        }}
       >
         <View className="mb-4 items-center pt-1">
           <View
@@ -73,7 +123,7 @@ export function ConfirmDialog({
             <Ionicons
               name={resolvedIcon}
               size={26}
-              color={destructive ? '#B4534B' : '#2563EB'}
+              color={destructive ? '#B4534B' : '#0548E8'}
             />
           </View>
           <Text className="text-center text-[20px] font-black tracking-tight text-ink">
@@ -86,17 +136,29 @@ export function ConfirmDialog({
 
         <View className="gap-2.5">
           <Pressable
-            onPress={onConfirm}
-            className="items-center rounded-2xl py-4"
-            style={{ backgroundColor: destructive ? '#B4534B' : '#0B1424' }}
+            onPress={() => requestClose('confirm')}
+            className="rounded-2xl py-4"
+            style={{ backgroundColor: destructive ? '#B4534B' : '#0548E8' }}
           >
-            <Text className="text-[15px] font-bold text-white">{confirmLabel}</Text>
+            <Text
+              numberOfLines={1}
+              className="text-[15px] font-bold text-white"
+              style={{ width: '100%', textAlign: 'center', flexShrink: 0 }}
+            >
+              {confirmLabel}
+            </Text>
           </Pressable>
           <Pressable
-            onPress={onCancel}
-            className="items-center rounded-2xl border border-[#E8EEF4] bg-white py-4"
+            onPress={() => requestClose('cancel')}
+            className="rounded-2xl border border-[#E8EEF4] bg-white py-4"
           >
-            <Text className="text-[15px] font-semibold text-ink">{cancelLabel}</Text>
+            <Text
+              numberOfLines={1}
+              className="text-[15px] font-semibold text-ink"
+              style={{ width: '100%', textAlign: 'center', flexShrink: 0 }}
+            >
+              {cancelLabel}
+            </Text>
           </Pressable>
         </View>
       </BottomSheetView>
@@ -123,41 +185,45 @@ export type ConfirmRequest = {
  * ```
  */
 export function useConfirmDialog() {
-  const [open, setOpen] = useState(false);
-  const [request, setRequest] = useState<ConfirmRequest | null>(null);
+  const [session, setSession] = useState<(ConfirmRequest & { id: number }) | null>(
+    null,
+  );
   const onConfirmRef = useRef<(() => void) | null>(null);
+  const idRef = useRef(0);
 
   const ask = useCallback((opts: ConfirmRequest, onConfirm: () => void) => {
     onConfirmRef.current = onConfirm;
-    setRequest(opts);
-    setOpen(true);
+    idRef.current += 1;
+    // New id remounts BottomSheetModal so present() always starts clean.
+    setSession({ ...opts, id: idRef.current });
   }, []);
 
   const close = useCallback(() => {
-    setOpen(false);
+    setSession(null);
     onConfirmRef.current = null;
   }, []);
 
   const handleConfirm = useCallback(() => {
     const fn = onConfirmRef.current;
-    setOpen(false);
+    setSession(null);
     onConfirmRef.current = null;
     fn?.();
   }, []);
 
-  const dialog = request ? (
+  const dialog = session ? (
     <ConfirmDialog
-      visible={open}
-      title={request.title}
-      message={request.message}
-      cancelLabel={request.cancelLabel}
-      confirmLabel={request.confirmLabel}
-      destructive={request.destructive}
-      icon={request.icon}
+      key={session.id}
+      visible
+      title={session.title}
+      message={session.message}
+      cancelLabel={session.cancelLabel}
+      confirmLabel={session.confirmLabel}
+      destructive={session.destructive}
+      icon={session.icon}
       onCancel={close}
       onConfirm={handleConfirm}
     />
   ) : null;
 
-  return { ask, dialog, open, close };
+  return { ask, dialog, open: session != null, close };
 }

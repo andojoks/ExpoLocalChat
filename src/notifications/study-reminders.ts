@@ -127,15 +127,27 @@ export async function setRemindersEnabled(enabled: boolean): Promise<boolean> {
   }
   await scheduleStudyReminders();
   await setStudyRemindersEnabled(true);
+  // Contextual permission moment — also register for remote push.
+  void import('@/notifications/register-push').then((m) =>
+    m.registerPushInBackground({ requestPermission: false }),
+  );
   return true;
 }
 
-/** Re-apply scheduled reminders after login if the preference is on. */
+/** Re-apply scheduled reminders after login if preference is on and permission already granted. */
 export async function syncStudyRemindersOnLaunch(): Promise<void> {
   ensureNotificationHandler();
   const enabled = await getStudyRemindersEnabled();
   if (!enabled) return;
-  const ok = await requestReminderPermissions();
-  if (!ok) return;
+  // Do not prompt on cold start / post-login — only schedule when already permitted.
+  const current = await Notifications.getPermissionsAsync();
+  const granted =
+    current.granted ||
+    current.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+  if (!granted) return;
   await scheduleStudyReminders();
+  // Refresh Expo push token without prompting (permission already granted).
+  void import('@/notifications/register-push').then((m) =>
+    m.registerPushInBackground({ requestPermission: false }),
+  );
 }

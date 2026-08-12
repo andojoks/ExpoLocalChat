@@ -25,12 +25,13 @@ import { formatDateDmY, formatDaysLeft } from '@/subscription/dates';
 import {
   SUB_PAGE_BG,
   SubBanner,
-  SubCard,
   SubEyebrow,
   SubFooterBar,
   SubInkHeader,
   SubPrimaryButton,
 } from '@/components/subscriptions/sub-chrome';
+import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
+import { BRAND_BLUE } from '@/theme/brand';
 
 function packStatus(pack: LearnerPackSummary) {
   if (pack.activeSubscription) return 'active' as const;
@@ -132,7 +133,7 @@ export default function SubscriptionsHubScreen() {
 
       {loading && packs.length === 0 ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#2563EB" />
+          <ActivityIndicator color="#0548E8" />
         </View>
       ) : (
         <View className="flex-1">
@@ -146,26 +147,40 @@ export default function SubscriptionsHubScreen() {
                   setRefreshing(true);
                   void load({ refresh: true });
                 }}
-                tintColor="#2563EB"
+                tintColor="#0548E8"
               />
             }
           >
             <SubEyebrow>Your packs</SubEyebrow>
 
             {packs.length === 0 ? (
-              <SubCard>
-                <View className="items-center px-5 py-8">
-                  <View className="mb-3 h-12 w-12 items-center justify-center rounded-2xl bg-[#0B1424]">
-                    <Ionicons name="albums-outline" size={22} color="#FFFFFF" />
+              <View
+                className="rounded-[24px] bg-white px-5 py-8"
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#E8EEF4',
+                  shadowColor: '#0B1424',
+                  shadowOpacity: 0.05,
+                  shadowRadius: 16,
+                  shadowOffset: { width: 0, height: 6 },
+                  elevation: 2,
+                }}
+              >
+                <View className="items-center">
+                  <View
+                    className="mb-3 h-12 w-12 items-center justify-center rounded-[14px]"
+                    style={{ backgroundColor: '#EFF6FF' }}
+                  >
+                    <Ionicons name="albums-outline" size={22} color={BRAND_BLUE} />
                   </View>
                   <Text className="text-center text-[16px] font-bold text-ink">No packs yet</Text>
                   <Text className="mt-1.5 text-center text-[13px] leading-5 text-slate-500">
                     Tap Add pack to choose a category and courses.
                   </Text>
                 </View>
-              </SubCard>
+              </View>
             ) : (
-              <View className="gap-3">
+              <View className="gap-3.5">
                 {packs.map((p) => {
                   const status = packStatus(p);
                   const meta = statusMeta(status);
@@ -175,65 +190,70 @@ export default function SubscriptionsHubScreen() {
                       onPress={() =>
                         router.push(`/(tabs)/account/subscriptions/${p.id}` as never)
                       }
+                      className="rounded-[24px] bg-white px-4 py-4"
+                      style={{
+                        borderWidth: 1,
+                        borderColor: '#E8EEF4',
+                        shadowColor: '#0B1424',
+                        shadowOpacity: 0.05,
+                        shadowRadius: 16,
+                        shadowOffset: { width: 0, height: 6 },
+                        elevation: 2,
+                      }}
                     >
-                      <SubCard>
-                        <View className="px-4 py-4">
-                          <View className="flex-row items-start gap-3">
-                            <View
-                              className="h-11 w-11 items-center justify-center rounded-[14px]"
-                              style={{ backgroundColor: meta.wash }}
+                      <View className="min-w-0">
+                        <View className="flex-row items-center gap-2">
+                          <Text
+                            className="min-w-0 flex-1 text-[16px] font-bold tracking-tight text-ink"
+                            numberOfLines={1}
+                            style={LABEL_TEXT_ANDROID}
+                          >
+                            {p.category.name}
+                          </Text>
+                          <View
+                            className="rounded-full px-2.5 py-1"
+                            style={{ backgroundColor: meta.wash }}
+                          >
+                            <Text
+                              className="text-[10px] font-bold uppercase tracking-wide"
+                              style={[LABEL_TEXT_ANDROID, { color: meta.tone }]}
                             >
-                              <Text
-                                className="text-[13px] font-black"
-                                style={{ color: meta.tone }}
-                              >
-                                {p.category.code?.slice(0, 2).toUpperCase() || 'EL'}
-                              </Text>
-                            </View>
-                            <View className="min-w-0 flex-1">
-                              <View className="flex-row items-center gap-2">
-                                <Text
-                                  className="min-w-0 flex-1 text-[15px] font-bold text-ink"
-                                  numberOfLines={1}
-                                >
-                                  {p.category.name}
-                                </Text>
-                                <View
-                                  className="rounded-full px-2.5 py-1"
-                                  style={{ backgroundColor: meta.wash }}
-                                >
-                                  <Text
-                                    className="text-[10px] font-bold uppercase tracking-wide"
-                                    style={{ color: meta.tone }}
-                                  >
-                                    {meta.label}
-                                  </Text>
-                                </View>
-                              </View>
-                              <Text className="mt-1 text-[12px] text-slate-500">
-                                {p.courses.length}/{p.category.maxSelectableCourses} courses
-                                {p.activeSubscription
-                                  ? ` · ${formatDaysLeft(p.activeSubscription.expiresAt)}`
-                                  : ''}
-                              </Text>
-                              {p.activeSubscription?.expiresAt ? (
-                                <Text className="mt-0.5 text-[11px] text-slate-400">
-                                  until {formatDateDmY(p.activeSubscription.expiresAt)}
-                                </Text>
-                              ) : null}
-                              <Text
-                                className="mt-2 text-[13px] text-slate-600"
-                                numberOfLines={2}
-                              >
-                                {p.courses.map((c) => c.name).join(', ') || 'No courses yet'}
-                              </Text>
-                            </View>
-                            <View className="h-8 w-8 items-center justify-center rounded-full bg-[#F1F5F9]">
-                              <Ionicons name="chevron-forward" size={16} color="#64748B" />
-                            </View>
+                              {meta.label}
+                            </Text>
                           </View>
                         </View>
-                      </SubCard>
+
+                        {status === 'active' && p.activeSubscription ? (
+                          <Text className="mt-1.5 text-[13px] text-slate-500">
+                            {formatDaysLeft(p.activeSubscription.expiresAt)}
+                            {p.activeSubscription.expiresAt
+                              ? ` · ${formatDateDmY(p.activeSubscription.expiresAt)}`
+                              : ''}
+                          </Text>
+                        ) : status === 'expired' ? (
+                          <Text className="mt-1.5 text-[13px] text-slate-500">
+                            Renew to restore answer unlocks
+                          </Text>
+                        ) : (
+                          <Text className="mt-1.5 text-[13px] text-slate-500">
+                            Ready to activate with MoMo
+                          </Text>
+                        )}
+
+                        <Text
+                          className="mt-2 text-[12px] text-[#94A3B8]"
+                          numberOfLines={1}
+                          style={LABEL_TEXT_ANDROID}
+                        >
+                          {p.courses.length} course{p.courses.length === 1 ? '' : 's'}
+                          {p.courses.length
+                            ? ` · ${p.courses
+                                .slice(0, 2)
+                                .map((c) => c.name)
+                                .join(', ')}${p.courses.length > 2 ? '…' : ''}`
+                            : ''}
+                        </Text>
+                      </View>
                     </Pressable>
                   );
                 })}

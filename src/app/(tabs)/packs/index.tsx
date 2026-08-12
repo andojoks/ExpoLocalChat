@@ -55,9 +55,9 @@ function CatalogCourseRow({
     >
       <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-[#EFF6FF]">
         {installing ? (
-          <ActivityIndicator size="small" color="#2563EB" />
+          <ActivityIndicator size="small" color="#0548E8" />
         ) : (
-          <Ionicons name="book-outline" size={18} color="#2563EB" />
+          <Ionicons name="book-outline" size={18} color="#0548E8" />
         )}
       </View>
       <View className="min-w-0 flex-1">
@@ -104,7 +104,9 @@ export default function PacksCatalogScreen() {
     setInstalled(local);
     if (cachedCatalog?.length) setPacks(cachedCatalog);
     if (cachedLearner?.length) setLearnerPacks(cachedLearner);
-    if (cachedCatalog?.length || cachedLearner?.length || local.length) {
+    // Only drop the spinner when we can render courses — learner/local cache alone
+    // still leaves `packs` empty and would flash the "No courses yet" empty state.
+    if (cachedCatalog?.length) {
       setLoading(false);
     }
 
@@ -256,7 +258,7 @@ export default function PacksCatalogScreen() {
 
       {loading && packs.length === 0 ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#2563EB" />
+          <ActivityIndicator color="#0548E8" />
         </View>
       ) : (
         <ScrollView
@@ -269,13 +271,13 @@ export default function PacksCatalogScreen() {
                 setRefreshing(true);
                 void load({ refresh: true });
               }}
-              tintColor="#2563EB"
+              tintColor="#0548E8"
             />
           }
         >
           {grouped.length === 0 ? (
             <View className="items-center px-6 py-16">
-              <View className="mb-4 h-14 w-14 items-center justify-center rounded-2xl bg-[#0B1424]">
+              <View className="mb-4 h-14 w-14 items-center justify-center rounded-2xl bg-[#0548E8]">
                 <Ionicons name="library-outline" size={26} color="#FFFFFF" />
               </View>
               <Text className="text-center text-[16px] font-bold text-ink">No courses yet</Text>
@@ -284,20 +286,26 @@ export default function PacksCatalogScreen() {
               </Text>
               <Pressable
                 onPress={() => router.push('/(tabs)/account/subscriptions')}
-                className="mt-5 items-center rounded-2xl bg-[#0B1424] px-5 py-3.5"
+                className="mt-5 rounded-2xl bg-[#0548E8] px-5 py-3.5"
               >
-                <Text className="font-bold text-white">Open subscriptions</Text>
+                <Text
+                  numberOfLines={1}
+                  className="font-bold text-white"
+                  style={{ width: '100%', textAlign: 'center', flexShrink: 0 }}
+                >
+                  Open subscriptions
+                </Text>
               </Pressable>
             </View>
           ) : (
             grouped.map((cat) => (
               <View key={cat.code} className="mb-7">
                 <View className="mb-3 flex-row items-center justify-between gap-3 px-0.5">
-                  <Text className="min-w-0 flex-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+                  <Text className="min-w-0 flex-1 text-[11px] font-semibold uppercase text-[#94A3B8]" style={{ letterSpacing: 2.0 }}>
                     {cat.name}
                   </Text>
                   <Pressable hitSlop={8} onPress={() => openManageCategory(cat.code)}>
-                    <Text className="text-[13px] font-semibold text-[#2563EB]">Manage</Text>
+                    <Text className="text-[13px] font-semibold text-[#0548E8]">Manage</Text>
                   </Pressable>
                 </View>
                 <SubCard>

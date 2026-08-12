@@ -6,7 +6,7 @@ module.exports = {
     extend: {
       colors: {
         ink: '#0B1424',
-        forest: '#2563EB',
+        forest: '#0548E8',
         mint: '#DBEAFE',
         paper: '#F8FAFC',
         line: '#E2E8F0',

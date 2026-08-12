@@ -51,8 +51,10 @@ import {
   SubInkHeader,
   SubPrimaryButton,
 } from '@/components/subscriptions/sub-chrome';
+import { StudySwipeArea } from '@/study/study-swipe-area';
 
 type DetailTab = 'courses' | 'subscription';
+const DETAIL_TABS: DetailTab[] = ['courses', 'subscription'];
 
 export default function PackDetailScreen() {
   const router = useRouter();
@@ -349,9 +351,21 @@ export default function PackDetailScreen() {
         <SubBanner tone="info" icon="checkmark-circle-outline" body={message} />
       ) : null}
 
+      <StudySwipeArea
+        enabled={Boolean(pack && category)}
+        onSwipeLeft={() => {
+          const i = DETAIL_TABS.indexOf(tab);
+          if (i >= 0 && i < DETAIL_TABS.length - 1) setTab(DETAIL_TABS[i + 1]!);
+        }}
+        onSwipeRight={() => {
+          const i = DETAIL_TABS.indexOf(tab);
+          if (i > 0) setTab(DETAIL_TABS[i - 1]!);
+        }}
+        style={{ flex: 1 }}
+      >
       {loading && !pack ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#2563EB" />
+          <ActivityIndicator color="#0548E8" />
         </View>
       ) : !pack || !category ? (
         <View className="flex-1 items-center justify-center px-6">
@@ -372,7 +386,7 @@ export default function PackDetailScreen() {
                   setRefreshing(true);
                   void load({ refresh: true });
                 }}
-                tintColor="#2563EB"
+                tintColor="#0548E8"
               />
             }
           >
@@ -380,7 +394,7 @@ export default function PackDetailScreen() {
               <SubCard className="mb-4">
                 <View className="flex-row items-start gap-3 px-4 py-4">
                   <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-[#EFF6FF]">
-                    <Ionicons name="lock-closed-outline" size={18} color="#2563EB" />
+                    <Ionicons name="lock-closed-outline" size={18} color="#0548E8" />
                   </View>
                   <View className="min-w-0 flex-1">
                     <Text className="text-[15px] font-bold text-ink">Courses locked</Text>
@@ -430,18 +444,18 @@ export default function PackDetailScreen() {
                 setRefreshing(true);
                 void load({ refresh: true });
               }}
-              tintColor="#2563EB"
+              tintColor="#0548E8"
             />
           }
         >
           {active && pack.activeSubscription ? (
             <SubCard className="mb-5">
               <View className="flex-row items-center gap-3 border-b border-[#E8EEF4] bg-[#F8FBFF] px-4 py-4">
-                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#0B1424]">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#0548E8]">
                   <Ionicons name="shield-checkmark" size={20} color="#FFFFFF" />
                 </View>
                 <View className="min-w-0 flex-1">
-                  <Text className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#2563EB]">
+                  <Text className="text-[11px] font-bold uppercase text-[#0548E8]" style={{ letterSpacing: 1.5 }}>
                     Subscription
                   </Text>
                   <Text className="mt-0.5 text-base font-black tracking-tight text-ink">Active</Text>
@@ -481,7 +495,7 @@ export default function PackDetailScreen() {
           ) : (
             <SubCard className="mb-5">
               <View className="border-b border-[#E8EEF4] px-4 py-4">
-                <Text className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#94A3B8]">
+                <Text className="text-[11px] font-bold uppercase text-[#94A3B8]" style={{ letterSpacing: 1.5 }}>
                   Activate access
                 </Text>
                 <Text className="mt-1 text-base font-black tracking-tight text-ink">
@@ -495,7 +509,7 @@ export default function PackDetailScreen() {
                 </Text>
               </View>
               <View className="px-4 py-4">
-                <Text className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
+                <Text className="mb-2 text-[11px] font-semibold uppercase text-[#94A3B8]" style={{ letterSpacing: 1.3 }}>
                   Payment method
                 </Text>
                 {(
@@ -523,7 +537,7 @@ export default function PackDetailScreen() {
                     <Ionicons
                       name={provider === m.id ? 'radio-button-on' : 'radio-button-off'}
                       size={20}
-                      color="#2563EB"
+                      color="#0548E8"
                     />
                   </Pressable>
                 ))}
@@ -630,6 +644,7 @@ export default function PackDetailScreen() {
           )}
         </ScrollView>
       )}
+      </StudySwipeArea>
     </View>
   );
 }

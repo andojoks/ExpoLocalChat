@@ -20,14 +20,19 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ExpertLearnerLogo } from '@/components/brand/expert-learner-logo';
 import { setOnboardingComplete } from '@/onboarding/storage';
+import {
+  BRAND_BLUE,
+  BRAND_GOLD,
+  BRAND_HEADER_GRADIENT,
+  BRAND_INK,
+} from '@/theme/brand';
+import { useBrandEdgeChrome } from '@/theme/use-brand-edge-chrome';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const H_PAD = 24;
 const FOOTER_RESERVE = 128;
 /** Art size — capped so title + body stay on-screen on short phones. */
 const ART = Math.min(SCREEN_W - H_PAD * 2, SCREEN_H * 0.38, 340);
-
-const INK = ['#0B1424', '#101C30', '#152844'] as const;
 
 type Slide =
   | { id: 'hero'; kind: 'hero' }
@@ -64,7 +69,7 @@ const SLIDES: Slide[] = [
   },
 ];
 
-function InkAtmosphere() {
+function BlueAtmosphere() {
   return (
     <>
       <View
@@ -76,7 +81,7 @@ function InkAtmosphere() {
           height: 220,
           width: 220,
           borderRadius: 999,
-          backgroundColor: 'rgba(37,99,235,0.16)',
+          backgroundColor: 'rgba(255,255,255,0.12)',
         }}
       />
       <View
@@ -88,7 +93,7 @@ function InkAtmosphere() {
           height: 200,
           width: 200,
           borderRadius: 999,
-          backgroundColor: 'rgba(37,99,235,0.1)',
+          backgroundColor: 'rgba(255,255,255,0.08)',
         }}
       />
     </>
@@ -107,13 +112,13 @@ function SlideShell({
   return (
     <View style={{ width: SCREEN_W, flex: 1 }}>
       <LinearGradient
-        colors={[...INK]}
+        colors={[...BRAND_HEADER_GRADIENT]}
         locations={[0, 0.45, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
-      <InkAtmosphere />
+      <BlueAtmosphere />
       <View
         style={{
           flex: 1,
@@ -137,7 +142,7 @@ function HeroSlide({
   topInset: number;
   bottomInset: number;
 }) {
-  const logoSize = Math.min(96, SCREEN_W * 0.26);
+  const logoSize = Math.min(192, SCREEN_W * 0.52);
   return (
     <SlideShell topInset={topInset} bottomInset={bottomInset}>
       <View style={{ alignItems: 'center', maxWidth: 360 }}>
@@ -149,7 +154,7 @@ function HeroSlide({
             fontSize: 11,
             letterSpacing: 2.4,
             textTransform: 'uppercase',
-            color: '#64748B',
+                color: 'rgba(255,255,255,0.7)',
             textAlign: 'center',
           }}
         >
@@ -167,7 +172,7 @@ function HeroSlide({
           }}
         >
           Learn Smarter.{'\n'}
-          <Text style={{ color: '#93C5FD' }}>Grow Faster.</Text>
+          <Text style={{ color: BRAND_GOLD }}>Grow Faster.</Text>
         </Text>
         <Text
           style={{
@@ -175,7 +180,7 @@ function HeroSlide({
             fontFamily: 'Sora_600SemiBold',
             fontSize: 15,
             lineHeight: 22,
-            color: '#94A3B8',
+            color: 'rgba(255,255,255,0.82)',
             textAlign: 'center',
           }}
         >
@@ -208,9 +213,9 @@ function VisualSlide({
             width: ART,
             height: ART,
             borderRadius: 28,
-            backgroundColor: '#152844',
+            backgroundColor: BRAND_BLUE,
             borderWidth: 1,
-            borderColor: 'rgba(148,163,184,0.18)',
+            borderColor: 'rgba(255,255,255,0.22)',
           }}
           resizeMode="cover"
         />
@@ -233,7 +238,7 @@ function VisualSlide({
             fontFamily: 'Sora_600SemiBold',
             fontSize: 15,
             lineHeight: 22,
-            color: '#94A3B8',
+            color: 'rgba(255,255,255,0.82)',
             textAlign: 'center',
             marginTop: 12,
             paddingHorizontal: 12,
@@ -266,7 +271,7 @@ function ProgressDots({ count, index }: { count: number; index: number }) {
               height: 6,
               width: on ? 20 : 6,
               borderRadius: 99,
-              backgroundColor: on ? '#93C5FD' : 'rgba(148,163,184,0.35)',
+              backgroundColor: on ? '#FFFFFF' : 'rgba(255,255,255,0.35)',
             }}
           />
         );
@@ -281,6 +286,7 @@ export default function OnboardingScreen() {
   const listRef = useRef<FlatList<Slide>>(null);
   const [index, setIndex] = useState(0);
   const ctaScale = useSharedValue(1);
+  useBrandEdgeChrome();
 
   const [fontsLoaded] = useFonts({
     Sora_600SemiBold,
@@ -317,15 +323,22 @@ export default function OnboardingScreen() {
   }));
 
   if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: '#0B1424' }} />;
+    return <View style={{ flex: 1, backgroundColor: BRAND_BLUE }} />;
   }
 
   const last = index === SLIDES.length - 1;
   const bottomPad = Math.max(insets.bottom, 12) + 10;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0B1424' }}>
+    <View style={{ flex: 1, backgroundColor: BRAND_BLUE }}>
       <StatusBar style="light" translucent />
+      <LinearGradient
+        colors={[...BRAND_HEADER_GRADIENT]}
+        locations={[0, 0.45, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+      />
 
       <View
         style={{
@@ -340,7 +353,7 @@ export default function OnboardingScreen() {
             style={{
               fontFamily: 'Sora_600SemiBold',
               fontSize: 14,
-              color: '#94A3B8',
+              color: 'rgba(255,255,255,0.8)',
             }}
           >
             Skip
@@ -356,7 +369,7 @@ export default function OnboardingScreen() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         bounces={false}
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: 'transparent' }}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         getItemLayout={(_, i) => ({
@@ -401,17 +414,21 @@ export default function OnboardingScreen() {
             }}
             onPress={goNext}
             style={{
-              alignItems: 'center',
               borderRadius: 16,
               backgroundColor: '#FFFFFF',
               paddingVertical: 16,
             }}
           >
             <Text
+              numberOfLines={1}
               style={{
                 fontFamily: 'Sora_700Bold',
                 fontSize: 16,
-                color: '#0B1424',
+                lineHeight: 22,
+                color: BRAND_INK,
+                width: '100%',
+                textAlign: 'center',
+                flexShrink: 0,
               }}
             >
               {last ? 'Get started' : 'Continue'}

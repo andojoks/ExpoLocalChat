@@ -72,7 +72,7 @@ export default function PackHubScreen() {
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#2563EB" />
+          <ActivityIndicator color="#0548E8" />
         </View>
       ) : (
         <FlatList
@@ -86,14 +86,14 @@ export default function PackHubScreen() {
                 setRefreshing(true);
                 void load();
               }}
-              tintColor="#2563EB"
+              tintColor="#0548E8"
             />
           }
           ListEmptyComponent={
             <SubCard>
               <View className="items-center px-5 py-8">
                 <View className="mb-3 h-12 w-12 items-center justify-center rounded-2xl bg-[#EFF6FF]">
-                  <Ionicons name="document-text-outline" size={22} color="#2563EB" />
+                  <Ionicons name="document-text-outline" size={22} color="#0548E8" />
                 </View>
                 <Text className="text-center text-[13px] text-slate-500">
                   No papers in this pack yet.
@@ -119,7 +119,7 @@ export default function PackHubScreen() {
               <SubCard>
                 <View className="flex-row items-center gap-3.5 px-4 py-4">
                   <View className="h-11 w-11 items-center justify-center rounded-[14px] bg-[#EFF6FF]">
-                    <Text className="text-sm font-black text-[#1D4ED8]">P{item.paperNumber}</Text>
+                    <Text className="text-sm font-black text-[#0439C4]">P{item.paperNumber}</Text>
                   </View>
                   <View className="min-w-0 flex-1">
                     <Text className="text-[15px] font-bold text-ink" numberOfLines={1}>

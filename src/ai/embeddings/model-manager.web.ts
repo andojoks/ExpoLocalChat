@@ -13,6 +13,8 @@ export type ModelManifest = {
   entryPoint: string;
   sha256?: string;
   mock?: boolean;
+  /** Public bucket URL — same pattern as pack downloads. */
+  downloadUrl?: string;
 };
 
 const INSTALL_KEY = 'questionbankchat:model-install';
@@ -119,7 +121,10 @@ export async function downloadModel(onProgress: (s: EmbeddingStatus) => void) {
     progress: 0.02,
     label: `Downloading full model ZIP - ${(manifest.archiveBytes / 1e6).toFixed(0)} MB`,
   });
-  const response = await fetch(`${getApiBaseUrl()}/models/embeddinggemma/${manifest.archive}`);
+  const archiveUrl =
+    manifest.downloadUrl?.trim() ||
+    `${getApiBaseUrl()}/models/embeddinggemma/${manifest.archive}`;
+  const response = await fetch(archiveUrl);
   if (!response.ok) throw Error(`Archive request failed (${response.status})`);
   const reader = response.body?.getReader();
   let received = 0;

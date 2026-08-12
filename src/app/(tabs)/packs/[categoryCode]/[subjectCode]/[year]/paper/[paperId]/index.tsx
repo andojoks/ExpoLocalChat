@@ -120,7 +120,7 @@ export default function PaperPeekScreen() {
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#2563EB" />
+          <ActivityIndicator color="#0548E8" />
         </View>
       ) : !docHtml || total === 0 ? (
         <View className="items-center px-6 py-16">

@@ -15,6 +15,16 @@ import {
   forceAccountSuspendedLogout,
 } from '@/auth/account-suspended';
 
+const DEVICE_SUPERSEDED_CODE = 'DEVICE_SUPERSEDED';
+/** Explicit revoke codes — opaque 401s must not wipe everlasting sessions. */
+const AUTH_REVOKE_CODES = new Set([
+  DEVICE_SUPERSEDED_CODE,
+  'AUTH_REVOKED',
+  'NO_DEVICE_SESSION',
+  'INVALID_TOKEN',
+  'MISSING_DEVICE_ID',
+]);
+
 let refreshPromise: Promise<string | null> | null = null;
 let lastSupersededAlertAt = 0;
 
@@ -22,7 +32,7 @@ function maybeAlertDeviceSuperseded(body: {
   code?: string;
   error?: string;
 }) {
-  if (body.code !== 'DEVICE_SUPERSEDED') return;
+  if (body.code !== DEVICE_SUPERSEDED_CODE) return;
   const now = Date.now();
   if (now - lastSupersededAlertAt < 4000) return;
   lastSupersededAlertAt = now;
@@ -31,6 +41,10 @@ function maybeAlertDeviceSuperseded(body: {
     body.error ||
       'You have been signed out. App detected a new login on another device.',
   );
+}
+
+function shouldClearEverlastingOn401(code?: string): boolean {
+  return Boolean(code && AUTH_REVOKE_CODES.has(code));
 }
 
 async function handleSuspendedIfNeeded(res: Response): Promise<boolean> {
@@ -44,14 +58,18 @@ async function handleSuspendedIfNeeded(res: Response): Promise<boolean> {
   return true;
 }
 
-async function refreshAccessToken(): Promise<string | null> {
+async function refreshAccessToken(opts?: {
+  revokeCode?: string;
+}): Promise<string | null> {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
     try {
       const currentAccess = await getAccessToken();
-      // Device-bound everlasting tokens: 401 means revoked/mismatched device — do not refresh.
+      // Device-bound everlasting tokens: only clear on explicit revoke codes.
       if (isEverlastingMobileAccessToken(currentAccess)) {
-        await clearTokens();
+        if (shouldClearEverlastingOn401(opts?.revokeCode)) {
+          await clearTokens();
+        }
         return null;
       }
 
@@ -84,7 +102,11 @@ async function refreshAccessToken(): Promise<string | null> {
           await forceAccountSuspendedLogout((e as Error).message);
           return null;
         }
-        await clearTokens();
+        if (shouldClearEverlastingOn401(code) || code === DEVICE_SUPERSEDED_CODE) {
+          await clearTokens();
+        } else if (!isEverlastingMobileAccessToken(currentAccess)) {
+          await clearTokens();
+        }
         return null;
       }
     } finally {
@@ -125,7 +147,7 @@ export async function apiFetch(path: string, options: HttpOptions = {}): Promise
       .catch(() => ({}))) as { code?: string; error?: string };
     maybeAlertDeviceSuperseded(body);
 
-    const next = await refreshAccessToken();
+    const next = await refreshAccessToken({ revokeCode: body.code });
     if (next) {
       headers.set('Authorization', `Bearer ${next}`);
       res = await fetch(url, { ...rest, headers });

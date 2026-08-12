@@ -13,6 +13,8 @@ import {
   getStudyRemindersEnabled,
   setRemindersEnabled,
 } from '@/notifications/study-reminders';
+import { BRAND_BLUE, BRAND_HEADER_GRADIENT, BRAND_MIST } from '@/theme/brand';
+import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 function PrefCard({
   icon,
@@ -41,7 +43,7 @@ function PrefCard({
       }}
     >
       <View className="h-11 w-11 items-center justify-center rounded-[14px] bg-[#EFF6FF]">
-        <Ionicons name={icon} size={20} color="#2563EB" />
+        <Ionicons name={icon} size={20} color={BRAND_BLUE} />
       </View>
       <View className="min-w-0 flex-1 pr-2">
         <Text className="text-[15px] font-bold text-ink">{title}</Text>
@@ -51,7 +53,7 @@ function PrefCard({
         value={value}
         onValueChange={onValueChange}
         trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
-        thumbColor={value ? '#2563EB' : '#F8FAFC'}
+        thumbColor={value ? BRAND_BLUE : '#F8FAFC'}
       />
     </View>
   );
@@ -85,14 +87,14 @@ export default function PreferencesScreen() {
   }, []);
 
   return (
-    <View className="flex-1 bg-[#E8EEF5]">
+    <View className="flex-1" style={{ backgroundColor: BRAND_MIST }}>
       <StatusBar style="light" />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 16 }}
       >
         <LinearGradient
-          colors={['#0B1424', '#101C30', '#152844']}
+          colors={[...BRAND_HEADER_GRADIENT]}
           locations={[0, 0.5, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -105,7 +107,7 @@ export default function PreferencesScreen() {
           <View
             pointerEvents="none"
             className="absolute -right-16 -top-8 h-40 w-40 rounded-full"
-            style={{ backgroundColor: 'rgba(37,99,235,0.12)' }}
+            style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
           />
 
           <View className="flex-row items-center gap-1">
@@ -113,7 +115,7 @@ export default function PreferencesScreen() {
               onPress={() => router.navigate('/(tabs)/account' as never)}
               hitSlop={12}
               className="h-10 w-10 items-center justify-center rounded-full"
-              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
             >
               <Ionicons name="arrow-back" size={20} color="#F8FAFC" />
             </Pressable>
@@ -121,7 +123,7 @@ export default function PreferencesScreen() {
               <Text
                 className="text-xl font-black text-white"
                 numberOfLines={1}
-                style={{ lineHeight: 28, includeFontPadding: false }}
+                style={[LABEL_TEXT_ANDROID, { lineHeight: 28 }]}
               >
                 Preferences
               </Text>
@@ -130,7 +132,10 @@ export default function PreferencesScreen() {
         </LinearGradient>
 
         <View className="px-5 pt-6">
-          <Text className="mb-3 px-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+          <Text
+            className="mb-3 px-0.5 text-[11px] font-semibold uppercase text-[#94A3B8]"
+            style={[LABEL_TEXT_ANDROID, { letterSpacing: 2.0 }]}
+          >
             Settings
           </Text>
 

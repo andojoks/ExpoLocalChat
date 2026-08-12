@@ -4,8 +4,14 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  BRAND_BLUE,
+  BRAND_HEADER_GRADIENT,
+  BRAND_MIST,
+} from '@/theme/brand';
+import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
-/** Flat ink nav header — matches Preferences / Subscriptions. */
+/** Flat brand-blue nav header — matches Preferences / Subscriptions. */
 export function SubInkHeader({
   title,
   subtitle,
@@ -31,7 +37,7 @@ export function SubInkHeader({
     <>
       <StatusBar style="light" />
       <LinearGradient
-        colors={['#0B1424', '#101C30', '#152844']}
+        colors={[...BRAND_HEADER_GRADIENT]}
         locations={[0, 0.5, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -44,7 +50,7 @@ export function SubInkHeader({
         <View
           pointerEvents="none"
           className="absolute -right-16 -top-8 h-40 w-40 rounded-full"
-          style={{ backgroundColor: 'rgba(37,99,235,0.12)' }}
+          style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
         />
 
         <View className="flex-row items-center gap-1">
@@ -53,7 +59,7 @@ export function SubInkHeader({
               onPress={onBack}
               hitSlop={12}
               className="h-10 w-10 items-center justify-center rounded-full"
-              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
             >
               <Ionicons name="arrow-back" size={20} color="#F8FAFC" />
             </Pressable>
@@ -62,12 +68,19 @@ export function SubInkHeader({
             <Text
               className={`${onBack ? 'text-xl' : 'text-2xl'} font-black text-white`}
               numberOfLines={1}
-              style={{ lineHeight: onBack ? 28 : 32, includeFontPadding: false }}
+              style={[
+                LABEL_TEXT_ANDROID,
+                { lineHeight: onBack ? 28 : 32 },
+              ]}
             >
               {title}
             </Text>
             {subtitle ? (
-              <Text className="mt-0.5 text-[12px] text-[#94A3B8]" numberOfLines={2}>
+              <Text
+                className="mt-0.5 text-[12px] text-white/75"
+                numberOfLines={2}
+                style={LABEL_TEXT_ANDROID}
+              >
                 {subtitle}
               </Text>
             ) : null}
@@ -86,13 +99,15 @@ export function SubInkHeader({
                   key={t.id}
                   onPress={() => onTabChange(t.id)}
                   className={`flex-1 items-center pb-3 ${
-                    on ? 'border-b-2 border-[#2563EB]' : 'border-b-2 border-transparent'
+                    on ? 'border-b-2 border-white' : 'border-b-2 border-transparent'
                   }`}
                 >
                   <Text
                     className={`text-[14px] font-semibold ${
-                      on ? 'text-white' : 'text-[#64748B]'
+                      on ? 'text-white' : 'text-white/55'
                     }`}
+                    numberOfLines={1}
+                    style={LABEL_TEXT_ANDROID}
                   >
                     {t.label}
                   </Text>
@@ -108,7 +123,10 @@ export function SubInkHeader({
 
 export function SubEyebrow({ children }: { children: string }) {
   return (
-    <Text className="mb-3 px-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+    <Text
+      className="mb-3 px-0.5 text-[11px] font-semibold uppercase text-[#94A3B8]"
+      style={[LABEL_TEXT_ANDROID, { letterSpacing: 2.0 }]}
+    >
       {children}
     </Text>
   );
@@ -152,9 +170,16 @@ export function SubPrimaryButton({
     <Pressable
       disabled={disabled}
       onPress={onPress}
-      className={`items-center rounded-2xl py-4 ${disabled ? 'bg-slate-300' : 'bg-[#0B1424]'}`}
+      className={`rounded-2xl py-4 ${disabled ? 'bg-slate-300' : ''}`}
+      style={disabled ? undefined : { backgroundColor: BRAND_BLUE }}
     >
-      <Text className="text-[15px] font-bold text-white">{label}</Text>
+      <Text
+        numberOfLines={1}
+        className="text-[15px] font-bold text-white"
+        style={[LABEL_TEXT_ANDROID, { width: '100%', textAlign: 'center' }]}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -187,7 +212,7 @@ export function SubBanner({
       ? { border: '#FECACA', bg: '#FEF2F2', iconBg: '#FEE2E2', icon: '#DC2626', text: '#991B1B' }
       : tone === 'success'
         ? { border: '#A7F3D0', bg: '#ECFDF5', iconBg: '#D1FAE5', icon: '#059669', text: '#065F46' }
-        : { border: '#BFDBFE', bg: '#EFF6FF', iconBg: '#DBEAFE', icon: '#2563EB', text: '#1E3A8A' };
+        : { border: '#BFDBFE', bg: '#EFF6FF', iconBg: '#DBEAFE', icon: BRAND_BLUE, text: '#1E3A8A' };
 
   return (
     <View
@@ -217,4 +242,4 @@ export function SubBanner({
   );
 }
 
-export const SUB_PAGE_BG = '#E8EEF5';
+export const SUB_PAGE_BG = BRAND_MIST;

@@ -16,7 +16,13 @@ const DEFAULT_BYTES = 91726304;
 /** Offload as many layers as fit; Metal (iOS) / OpenCL+Hexagon (Android when supported). */
 const N_GPU_LAYERS = 99;
 
-export type ChatManifest = { file: string; bytes: number; available: boolean };
+export type ChatManifest = {
+  file: string;
+  bytes: number;
+  available: boolean;
+  /** Public bucket URL — same pattern as pack downloads. */
+  downloadUrl?: string;
+};
 
 export type ChatGpuBackend = 'opencl' | 'hexagon' | 'metal' | 'cpu';
 
@@ -243,25 +249,44 @@ async function writeLocalChatManifest(manifest: ChatManifest) {
   await FileSystem.writeAsStringAsync(LOCAL_MANIFEST_PATH, JSON.stringify(manifest));
 }
 
+function isHttpUrl(value: string | undefined): value is string {
+  return !!value && /^https?:\/\//i.test(value);
+}
+
 async function fetchRemoteChatManifest(): Promise<ChatManifest> {
-  if (process.env.EXPO_PUBLIC_CHAT_MODEL_URL) {
-    return { file: FILE, bytes: DEFAULT_BYTES, available: true };
+  const override = process.env.EXPO_PUBLIC_CHAT_MODEL_URL?.trim();
+  if (override) {
+    console.log(`[chat] model override EXPO_PUBLIC_CHAT_MODEL_URL=${override}`);
+    return { file: FILE, bytes: DEFAULT_BYTES, available: true, downloadUrl: override };
   }
-  const response = await fetch(`${getApiBaseUrl()}/models/${MODEL_ROUTE}/manifest.json`);
+  const manifestUrl = `${getApiBaseUrl()}/models/${MODEL_ROUTE}/manifest.json`;
+  console.log(`[chat] model manifest GET ${manifestUrl}`);
+  const response = await fetch(manifestUrl);
   if (!response.ok) throw Error(`Chat model manifest failed (${response.status})`);
   const manifest = (await response.json()) as Partial<ChatManifest>;
-  if (manifest.file !== FILE || !manifest.available || !manifest.bytes) {
+  const downloadUrl = manifest.downloadUrl?.trim();
+  if (manifest.file !== FILE || !manifest.available || !manifest.bytes || !isHttpUrl(downloadUrl)) {
     throw Error('SmolLM2 chat model is not available on the model server');
   }
-  return { file: FILE, bytes: manifest.bytes, available: true };
+  console.log(`[chat] model downloadUrl ${downloadUrl}`);
+  return { file: FILE, bytes: manifest.bytes, available: true, downloadUrl };
 }
 
 async function downloadGguf(
   manifest: ChatManifest,
   onProgress?: (label: string, progress: number) => void,
 ) {
+  const url = process.env.EXPO_PUBLIC_CHAT_MODEL_URL?.trim() || manifest.downloadUrl?.trim();
+  if (!isHttpUrl(url)) {
+    throw Error('Chat model manifest is missing a public download URL');
+  }
+  console.log(`[chat] model download GET ${url}`);
+
   const info = await FileSystem.getInfoAsync(PATH);
-  if (info.exists && 'size' in info && info.size === manifest.bytes) return;
+  if (info.exists && 'size' in info && info.size === manifest.bytes) {
+    console.log(`[chat] model already on device (${manifest.bytes} bytes) — skip download`);
+    return;
+  }
 
   if (info.exists) await FileSystem.deleteAsync(PATH, { idempotent: true });
   for (const legacy of [
@@ -270,9 +295,6 @@ async function downloadGguf(
   ]) {
     await FileSystem.deleteAsync(`${MODEL_DIR}${legacy}`, { idempotent: true });
   }
-
-  const url =
-    process.env.EXPO_PUBLIC_CHAT_MODEL_URL || `${getApiBaseUrl()}/models/${MODEL_ROUTE}/${FILE}`;
 
   // Prefer resumable download for progress when available.
   if (typeof FileSystem.createDownloadResumable === 'function') {
@@ -290,6 +312,9 @@ async function downloadGguf(
       },
     );
     const result = await task.downloadAsync();
+    console.log(
+      `[chat] model download finished status=${result?.status ?? 'none'} uri=${result?.uri ?? PATH}`,
+    );
     if (!result || result.status < 200 || result.status >= 300) {
       await FileSystem.deleteAsync(PATH, { idempotent: true });
       throw Error(`Chat model download failed (${result?.status ?? 'no result'})`);
@@ -302,7 +327,7 @@ async function downloadGguf(
     } catch (error) {
       await FileSystem.deleteAsync(PATH, { idempotent: true });
       throw Error(
-        `Chat model download failed (offline or cannot reach ${getApiBaseUrl()}): ${String(error)}`,
+        `Chat model download failed (offline or cannot reach ${url}): ${String(error)}`,
       );
     }
     if (result.status < 200 || result.status >= 300) {

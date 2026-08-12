@@ -163,7 +163,7 @@ mjx-container {
   background: #E2E8F0;
   color: #334155;
 }
-.el-option--selected .el-option-label { background: #2563EB; color: #fff; }
+.el-option--selected .el-option-label { background: #0548E8; color: #fff; }
 .el-option--correct .el-option-label { background: #059669; color: #fff; }
 .el-option--wrong .el-option-label { background: #DC2626; color: #fff; }
 .el-option-body { flex: 1; min-width: 0; }
@@ -176,7 +176,7 @@ mjx-container {
   font-size: 0.875rem;
   font-weight: 700;
   color: #fff;
-  background: #2563EB;
+  background: #0548E8;
   border: none;
   border-radius: 0.65rem;
   cursor: pointer;
@@ -184,6 +184,103 @@ mjx-container {
 }
 .el-btn--locked {
   background: #94A3B8;
+}
+
+.el-answer-accordion {
+  /* Bleed to study page edges (doc has 12px padding). No top rule — answer belongs to the section above. */
+  width: calc(100% + 24px);
+  max-width: none;
+  margin: 0.35rem -12px 0;
+  padding: 0 12px;
+  border: none;
+  background: #F8FAFC;
+  box-sizing: border-box;
+}
+.el-answer-accordion.is-open {
+  background: #F1F5FB;
+}
+.el-answer-accordion__trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.95rem 0.15rem 0.95rem 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  color: #0B1424;
+}
+.el-answer-accordion__lead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+.el-answer-accordion__title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #0B1424;
+}
+.el-answer-accordion__hint {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748B;
+}
+.el-answer-accordion.is-open .el-answer-accordion__hint {
+  color: #0548E8;
+}
+.el-answer-accordion__chevron,
+.el-answer-accordion__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  color: #0548E8;
+  background: rgba(5, 72, 232, 0.08);
+  transition: transform 0.2s ease;
+}
+.el-answer-accordion.is-open .el-answer-accordion__chevron {
+  transform: rotate(180deg);
+  background: rgba(5, 72, 232, 0.14);
+}
+.el-answer-accordion--locked {
+  background: #FFFBEB;
+}
+.el-answer-accordion--locked .el-answer-accordion__title {
+  color: #92400E;
+}
+.el-answer-accordion--locked .el-answer-accordion__hint {
+  color: #B45309;
+}
+.el-answer-accordion--locked .el-answer-accordion__icon {
+  color: #B45309;
+  background: rgba(180, 83, 9, 0.1);
+}
+.el-answer-accordion__panel {
+  padding: 0 0 1rem;
+}
+.el-answer-accordion__panel.is-hidden,
+.el-answer-accordion__panel[hidden] {
+  display: none !important;
+}
+.el-answer-accordion__empty {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #475569;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.65rem;
 }
 .el-reveal-heading {
   margin: 0 0 0.4rem 0;
@@ -194,17 +291,17 @@ mjx-container {
   color: #64748B;
 }
 .el-reveal-block {
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.65rem;
   padding: 0.75rem 0.85rem;
   border-radius: 0.65rem;
-  background: #F1F5F9;
+  background: #FFFFFF;
   border: 1px solid #E2E8F0;
 }
 .el-reveal-block:last-child { margin-bottom: 0; }
 .el-q-solutions {
   margin-top: 0.25rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid #E2E8F0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .el-question-block {
@@ -238,7 +335,7 @@ mjx-container {
   font-weight: 800;
   border-radius: 0.5rem;
   background: #DBEAFE;
-  color: #1D4ED8;
+  color: #0439C4;
 }
 .el-question-meta { font-size: 0.75rem; font-weight: 600; color: #64748B; }
 .el-question-inner { max-width: 100%; }
@@ -270,7 +367,7 @@ mjx-container {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #1D4ED8;
+  color: #0439C4;
 }
 .el-paper-peek-list {
   display: flex;
@@ -309,7 +406,7 @@ mjx-container {
   font-weight: 800;
   border-radius: 0.65rem;
   background: #DBEAFE;
-  color: #1D4ED8;
+  color: #0439C4;
 }
 .el-paper-peek-meta {
   flex: 1;
@@ -322,7 +419,7 @@ mjx-container {
 .el-paper-peek-section {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #1D4ED8;
+  color: #0439C4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -553,7 +650,7 @@ export function QuestionHtmlView({
         className="items-center justify-center py-6"
         style={{ minHeight: fill ? undefined : minHeight, flex: fill ? 1 : undefined }}
       >
-        <ActivityIndicator color="#2563EB" />
+        <ActivityIndicator color="#0548E8" />
       </View>
     );
   }
@@ -575,7 +672,7 @@ export function QuestionHtmlView({
     >
       {loading && !fill ? (
         <View className="absolute inset-0 z-10 items-center justify-center">
-          <ActivityIndicator color="#2563EB" />
+          <ActivityIndicator color="#0548E8" />
         </View>
       ) : null}
       <WebView

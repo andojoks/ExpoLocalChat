@@ -324,7 +324,7 @@ export default function QuestionDetailScreen() {
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#2563EB" />
+          <ActivityIndicator color="#0548E8" />
         </View>
       ) : error || !node ? (
         <View className="px-5 py-6">
@@ -357,7 +357,7 @@ export default function QuestionDetailScreen() {
                           borderColor: '#BFDBFE',
                         }}
                       >
-                        <Text className="text-xs font-semibold text-[#1D4ED8]">{topic}</Text>
+                        <Text className="text-xs font-semibold text-[#0439C4]">{topic}</Text>
                       </View>
                     ))}
                   </View>
@@ -391,7 +391,7 @@ export default function QuestionDetailScreen() {
                     />
                   ) : (
                     <View className="items-center py-10">
-                      <ActivityIndicator color="#2563EB" />
+                      <ActivityIndicator color="#0548E8" />
                     </View>
                   )}
                 </SubCard>
@@ -406,7 +406,7 @@ export default function QuestionDetailScreen() {
                   disabled={!prev}
                   onPress={() => prev && goTo(prev.id)}
                   className="h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl"
-                  style={{ backgroundColor: prev ? '#0B1424' : '#E2E8F0' }}
+                  style={{ backgroundColor: prev ? '#0548E8' : '#E2E8F0' }}
                 >
                   <Ionicons
                     name="chevron-back"
@@ -423,7 +423,7 @@ export default function QuestionDetailScreen() {
                   disabled={!next}
                   onPress={() => next && goTo(next.id)}
                   className="h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl"
-                  style={{ backgroundColor: next ? '#0B1424' : '#E2E8F0' }}
+                  style={{ backgroundColor: next ? '#0548E8' : '#E2E8F0' }}
                 >
                   <Text
                     className={`text-sm font-bold ${next ? 'text-white' : 'text-slate-400'}`}

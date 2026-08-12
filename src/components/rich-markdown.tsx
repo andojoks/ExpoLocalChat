@@ -6,7 +6,7 @@ import { normalizeLatexDelimiters } from '@/study/normalize-latex-delimiters';
 /** Chat chrome is always light; do not follow OS dark mode (that made assistant text near-white on white bubbles). */
 const INK = '#0B1424';
 const INK_ON_FOREST = '#FFFFFF';
-const ACCENT = '#2563EB';
+const ACCENT = '#0548E8';
 
 const webTextSharp =
   Platform.OS === 'web'

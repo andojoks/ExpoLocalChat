@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, ScrollView } from 'react-native';
+import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   AuthError,
@@ -13,6 +13,7 @@ import { AuthPasswordField } from '@/components/auth/password-field';
 import { useAuth } from '@/auth/AuthProvider';
 import { useGoogleAuth } from '@/auth/use-google-auth';
 import { accountSuspendedMessage } from '@/auth/account-suspended';
+import { setPendingAuth } from '@/auth/pending-auth';
 
 export default function LoginScreen() {
   const { signInWithPassword } = useAuth();
@@ -31,6 +32,7 @@ export default function LoginScreen() {
     } catch (e) {
       const err = e as Error & { code?: string; email?: string };
       if (err.code === 'EMAIL_NOT_VERIFIED' && err.email) {
+        await setPendingAuth({ screen: 'verify-email', email: err.email });
         router.push({ pathname: '/(auth)/verify-email', params: { email: err.email } });
         return;
       }
@@ -48,52 +50,46 @@ export default function LoginScreen() {
 
   return (
     <AuthScreenShell title="Welcome back">
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      >
-        <AuthError message={error} />
-        <AuthField
-          label="Email or phone"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={identifier}
-          onChangeText={setIdentifier}
-          placeholder="you@school.edu"
-        />
-        <AuthPasswordField
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          placeholder="••••••••"
-        />
-        <AuthLink label="Forgot password?" onPress={() => router.push('/(auth)/forgot-password')} />
-        <AuthPrimaryButton label={busy ? 'Signing in…' : 'Log in'} disabled={busy} onPress={onSubmit} />
-        <AuthSecondaryButton
-          label="Continue with Google"
-          icon="google"
-          onPress={async () => {
-            setError(null);
-            setBusy(true);
-            try {
-              await google.signIn();
-            } catch (e) {
-              const err = e as Error & { code?: string };
-              if (err.code === 'ACCOUNT_SUSPENDED') {
-                const msg = accountSuspendedMessage(err);
-                Alert.alert('Account suspended', msg);
-                setError(msg);
-                return;
-              }
-              setError(err.message || 'Google sign-in failed');
-            } finally {
-              setBusy(false);
+      <AuthError message={error} />
+      <AuthField
+        label="Email or phone"
+        autoCapitalize="none"
+        autoCorrect={false}
+        value={identifier}
+        onChangeText={setIdentifier}
+        placeholder="you@school.edu"
+      />
+      <AuthPasswordField
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        placeholder="••••••••"
+      />
+      <AuthLink label="Forgot password?" onPress={() => router.push('/(auth)/forgot-password')} />
+      <AuthPrimaryButton label={busy ? 'Signing in…' : 'Log in'} disabled={busy} onPress={onSubmit} />
+      <AuthSecondaryButton
+        label="Continue with Google"
+        icon="google"
+        onPress={async () => {
+          setError(null);
+          setBusy(true);
+          try {
+            await google.signIn();
+          } catch (e) {
+            const err = e as Error & { code?: string };
+            if (err.code === 'ACCOUNT_SUSPENDED') {
+              const msg = accountSuspendedMessage(err);
+              Alert.alert('Account suspended', msg);
+              setError(msg);
+              return;
             }
-          }}
-        />
-        <AuthLink label="Create an account" onPress={() => router.push('/(auth)/signup')} />
-      </ScrollView>
+            setError(err.message || 'Google sign-in failed');
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+      <AuthLink label="Create an account" onPress={() => router.push('/(auth)/signup')} />
     </AuthScreenShell>
   );
 }

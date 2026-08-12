@@ -1,25 +1,40 @@
-import { useState } from 'react';
-import { ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   AuthError,
   AuthPrimaryButton,
   AuthScreenShell,
 } from '@/components/auth/auth-ui';
 import { AuthPasswordField } from '@/components/auth/password-field';
-import { OtpBoxes, ResendCooldown } from '@/components/auth/otp-boxes';
 import { useAuth } from '@/auth/AuthProvider';
 import { isPasswordLongEnough, PASSWORD_MIN_LENGTH } from '@/auth/password-strength';
+import { setPendingAuth } from '@/auth/pending-auth';
 
 export default function ResetPasswordScreen() {
-  const { identifier: idParam } = useLocalSearchParams<{ identifier?: string }>();
+  const { identifier: idParam, code: codeParam } = useLocalSearchParams<{
+    identifier?: string;
+    code?: string;
+  }>();
   const identifier = String(idParam || '');
-  const { resetPassword, resendOtp, forgotPassword } = useAuth();
-  const [code, setCode] = useState('');
+  const code = String(codeParam || '');
+  const router = useRouter();
+  const { resetPassword } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!identifier.trim() || !code.trim()) {
+      router.replace('/(auth)/forgot-password');
+      return;
+    }
+    void setPendingAuth({
+      screen: 'reset-password',
+      identifier: identifier.trim(),
+      code: code.trim(),
+    });
+  }, [identifier, code, router]);
 
   async function onSubmit() {
     setError(null);
@@ -49,41 +64,29 @@ export default function ResetPasswordScreen() {
 
   return (
     <AuthScreenShell
-      title="Reset password"
-      subtitle="Enter the code from your email and choose a new password."
+      title="Choose a new password"
+      subtitle="Your reset code is verified. Set a new password for your account."
       showBack
     >
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
-        <AuthError message={error} />
-        <OtpBoxes value={code} onChange={setCode} />
-        <AuthPasswordField
-          label="New password"
-          value={password}
-          onChangeText={setPassword}
-          placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
-          showStrength
-        />
-        <AuthPasswordField
-          label="Confirm password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          placeholder="Re-enter password"
-        />
-        <AuthPrimaryButton
-          label={busy ? 'Saving…' : 'Update password'}
-          disabled={!canSubmit}
-          onPress={onSubmit}
-        />
-        <ResendCooldown
-          onResend={async () => {
-            if (identifier.includes('@')) {
-              await resendOtp(identifier, 'PASSWORD_RESET');
-            } else {
-              await forgotPassword(identifier);
-            }
-          }}
-        />
-      </ScrollView>
+      <AuthError message={error} />
+      <AuthPasswordField
+        label="New password"
+        value={password}
+        onChangeText={setPassword}
+        placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
+        showStrength
+      />
+      <AuthPasswordField
+        label="Confirm password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        placeholder="Re-enter password"
+      />
+      <AuthPrimaryButton
+        label={busy ? 'Saving…' : 'Update password'}
+        disabled={!canSubmit}
+        onPress={onSubmit}
+      />
     </AuthScreenShell>
   );
 }

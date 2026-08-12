@@ -201,7 +201,7 @@ export function AppTabBar({ state, descriptors, navigation }: TabBarProps) {
                 <Ionicons
                   name={focused ? meta.iconActive : meta.icon}
                   size={22}
-                  color={focused ? '#2563EB' : '#94A3B8'}
+                  color={focused ? '#0548E8' : '#94A3B8'}
                 />
                 <Text
                   numberOfLines={1}

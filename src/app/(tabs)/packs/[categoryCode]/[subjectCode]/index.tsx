@@ -11,6 +11,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Ionicons } from '@expo/vector-icons';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
+import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 import {
   SUB_PAGE_BG,
   SubBanner,
@@ -43,12 +44,12 @@ function PackJobIndicator({
     const pct = Math.round(Math.max(0, Math.min(1, job.progress)) * 100);
     return (
       <View className="mt-2">
-        <Text className="mb-1 text-[11px] font-semibold text-[#1D4ED8]">
+        <Text className="mb-1 text-[11px] font-semibold text-[#0439C4]">
           Downloading {pct}%
         </Text>
         <View className="h-1.5 overflow-hidden rounded-full bg-[#E8EEF4]">
           <View
-            className="h-full rounded-full bg-[#2563EB]"
+            className="h-full rounded-full bg-[#0548E8]"
             style={{ width: `${Math.max(4, pct)}%` }}
           />
         </View>
@@ -64,7 +65,7 @@ function PackJobIndicator({
           ? 'Removing…'
           : 'Working…';
   return (
-    <Text className="mt-2 text-[11px] font-semibold text-[#1D4ED8]">{label}</Text>
+    <Text className="mt-2 text-[11px] font-semibold text-[#0439C4]">{label}</Text>
   );
 }
 
@@ -118,9 +119,21 @@ function YearPackRow({
         <Pressable
           disabled={busy || !local}
           onPress={() => local && onOpen()}
-          className="flex-row flex-wrap items-center gap-2 active:opacity-70"
+          className="shrink-0 flex-row flex-wrap items-center gap-2 active:opacity-70"
         >
-          <Text className="text-base font-black tracking-tight text-ink">{year}</Text>
+          <Text
+            className="text-base font-black tracking-tight text-ink"
+            style={[
+              LABEL_TEXT_ANDROID,
+              {
+                lineHeight: 24,
+                minWidth: 48,
+                paddingRight: 4,
+              },
+            ]}
+          >
+            {year}
+          </Text>
           {status ? (
             <View
               className="rounded-full px-2.5 py-1"
@@ -130,7 +143,10 @@ function YearPackRow({
             >
               <Text
                 className="text-[10px] font-bold"
-                style={{ color: status.tone === 'warn' ? '#B45309' : '#64748B' }}
+                style={[
+                  LABEL_TEXT_ANDROID,
+                  { color: status.tone === 'warn' ? '#B45309' : '#64748B' },
+                ]}
               >
                 {status.text}
               </Text>
@@ -140,8 +156,8 @@ function YearPackRow({
 
         {showDownload ? (
           downloading ? (
-            <View className="h-8 w-8 items-center justify-center rounded-[12px] bg-[#EFF6FF]">
-              <ActivityIndicator size="small" color="#2563EB" />
+            <View className="h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-[#EFF6FF]">
+              <ActivityIndicator size="small" color="#0548E8" />
             </View>
           ) : (
             <Pressable
@@ -151,9 +167,9 @@ function YearPackRow({
                 void onSync().finally(() => setRowBusy(false));
               }}
               accessibilityLabel={local ? 'Update pack' : 'Download pack'}
-              className="h-8 w-8 items-center justify-center rounded-[12px] bg-[#EFF6FF]"
+              className="h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-[#EFF6FF]"
             >
-              <Ionicons name="cloud-download-outline" size={18} color="#2563EB" />
+              <Ionicons name="cloud-download-outline" size={18} color="#0548E8" />
             </Pressable>
           )
         ) : null}
@@ -162,7 +178,7 @@ function YearPackRow({
 
         {local ? (
           removing ? (
-            <View className="h-8 w-8 items-center justify-center rounded-[12px] bg-[#FEF2F2]">
+            <View className="h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-[#FEF2F2]">
               <ActivityIndicator size="small" color="#DC2626" />
             </View>
           ) : (
@@ -171,7 +187,7 @@ function YearPackRow({
               disabled={busy}
               onPress={onRemove}
               accessibilityLabel="Remove pack"
-              className="h-8 w-8 items-center justify-center rounded-[12px] bg-[#FEF2F2]"
+              className="h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-[#FEF2F2]"
             >
               <Ionicons name="trash-outline" size={18} color="#DC2626" />
             </Pressable>
@@ -195,7 +211,7 @@ function YearPackRow({
                 key={n}
                 className="h-9 min-w-[36px] items-center justify-center rounded-xl bg-[#EFF6FF] px-2.5"
               >
-                <Text className="text-xs font-black text-[#1D4ED8]">P{n}</Text>
+                <Text className="text-xs font-black text-[#0439C4]">P{n}</Text>
               </View>
             ))}
           </View>
@@ -215,13 +231,16 @@ export default function CoursePacksScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
   const confirm = useConfirmDialog();
-  const { categoryCode, subjectCode } = useLocalSearchParams<{
+  const { categoryCode, subjectCode, from } = useLocalSearchParams<{
     categoryCode: string;
     subjectCode: string;
+    from?: string;
   }>();
 
   const cat = Array.isArray(categoryCode) ? categoryCode[0] : categoryCode || '';
   const subject = Array.isArray(subjectCode) ? subjectCode[0] : subjectCode || '';
+  const fromParam = Array.isArray(from) ? from[0] : from;
+  const openedFromHome = fromParam === 'home';
 
   const [packs, setPacks] = useState<CatalogPack[]>([]);
   const [installed, setInstalled] = useState<InstalledPack[]>([]);
@@ -373,7 +392,15 @@ export default function CoursePacksScreen() {
       <SubInkHeader
         title={title}
         subtitle={subtitle}
-        onBack={() => router.back()}
+        onBack={() => {
+          // Cross-tab push from Home leaves an unreliable history stack; go
+          // explicitly to the origin instead of router.back().
+          if (openedFromHome) {
+            router.dismissTo('/(tabs)');
+            return;
+          }
+          router.dismissTo('/(tabs)/packs');
+        }}
       />
 
       {error ? (
@@ -382,7 +409,7 @@ export default function CoursePacksScreen() {
 
       {loading && packs.length === 0 ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#2563EB" />
+          <ActivityIndicator color="#0548E8" />
         </View>
       ) : (
         <ScrollView
@@ -395,7 +422,7 @@ export default function CoursePacksScreen() {
                 setRefreshing(true);
                 void load({ refresh: true });
               }}
-              tintColor="#2563EB"
+              tintColor="#0548E8"
             />
           }
         >

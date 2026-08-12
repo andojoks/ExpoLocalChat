@@ -1,9 +1,15 @@
 import { Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import type { StreakSnapshot } from '@/study/streak-api';
-
-const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+import Animated, {
+  Extrapolation,
+  interpolate,
+  interpolateColor,
+  type SharedValue,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
+import { ExpertLearnerLogo } from '@/components/brand/expert-learner-logo';
+import { BRAND_HEADER_GRADIENT } from '@/theme/brand';
+import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 function greetingForHour(hour: number) {
   if (hour < 12) return 'Good morning';
@@ -11,180 +17,287 @@ function greetingForHour(hour: number) {
   return 'Good evening';
 }
 
-function labelsForLast7(): string[] {
-  const labels: string[] = [];
-  const now = new Date();
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(now.getDate() - i);
-    const wd = d.getDay();
-    labels.push(DAY_LABELS[wd === 0 ? 6 : wd - 1]);
-  }
-  return labels;
+/** Expanded / collapsed heights for the sticky home header. */
+export function homeHeaderHeights(topInset: number) {
+  // Brand row (~56) + greeting + name + paddings — keep in sync with layout below.
+  const expanded = topInset + 12 + 126 + 28;
+  const collapsed = topInset + 8 + 40 + 14;
+  return {
+    expanded,
+    collapsed,
+    delta: Math.max(1, expanded - collapsed),
+  };
 }
 
 export function HomeWelcome({
   name,
   initial,
-  streak,
-  activePackCount,
   topInset,
+  scrollY,
 }: {
   name: string;
   initial: string;
-  streak: StreakSnapshot | null;
-  activePackCount: number;
   topInset: number;
+  scrollY: SharedValue<number>;
 }) {
   const greeting = greetingForHour(new Date().getHours());
-  const count = streak?.currentStreakDays ?? 0;
-  const days = streak?.last7DaysActive?.length === 7 ? streak.last7DaysActive : null;
-  const labels = labelsForLast7();
+  const { expanded, collapsed, delta } = homeHeaderHeights(topInset);
+
+  const shellStyle = useAnimatedStyle(() => {
+    const y = Math.max(0, scrollY.value);
+    const height = interpolate(
+      y,
+      [0, delta],
+      [expanded, collapsed],
+      Extrapolation.CLAMP,
+    );
+    const radius = interpolate(y, [0, delta], [32, 0], Extrapolation.CLAMP);
+    return {
+      height,
+      borderBottomLeftRadius: radius,
+      borderBottomRightRadius: radius,
+    };
+  });
+
+  const padStyle = useAnimatedStyle(() => {
+    const y = Math.max(0, scrollY.value);
+    return {
+      paddingTop: interpolate(
+        y,
+        [0, delta],
+        [topInset + 12, topInset + 8],
+        Extrapolation.CLAMP,
+      ),
+      paddingBottom: interpolate(y, [0, delta], [28, 14], Extrapolation.CLAMP),
+    };
+  });
+
+  const brandRowStyle = useAnimatedStyle(() => {
+    const y = Math.max(0, scrollY.value);
+    return {
+      minHeight: interpolate(y, [0, delta], [56, 40], Extrapolation.CLAMP),
+    };
+  });
+
+  const logoStyle = useAnimatedStyle(() => {
+    const y = Math.max(0, scrollY.value);
+    const scale = interpolate(y, [0, delta], [1, 32 / 44], Extrapolation.CLAMP);
+    return { transform: [{ scale }] };
+  });
+
+  /** Eyebrow → page title (matches SubInkHeader presence when collapsed). */
+  const brandLabelStyle = useAnimatedStyle(() => {
+    const y = Math.max(0, scrollY.value);
+    return {
+      fontSize: interpolate(y, [0, delta], [11, 20], Extrapolation.CLAMP),
+      lineHeight: interpolate(y, [0, delta], [14, 28], Extrapolation.CLAMP),
+      letterSpacing: interpolate(y, [0, delta], [2.4, -0.35], Extrapolation.CLAMP),
+      color: interpolateColor(
+        y,
+        [0, delta],
+        ['rgba(255,255,255,0.65)', '#FFFFFF'],
+      ),
+    };
+  });
+
+  const brandEyebrowWeightStyle = useAnimatedStyle(() => {
+    const y = Math.max(0, scrollY.value);
+    return {
+      opacity: interpolate(y, [0, delta * 0.4], [1, 0], Extrapolation.CLAMP),
+    };
+  });
+
+  const brandTitleWeightStyle = useAnimatedStyle(() => {
+    const y = Math.max(0, scrollY.value);
+    return {
+      opacity: interpolate(y, [delta * 0.25, delta * 0.7], [0, 1], Extrapolation.CLAMP),
+    };
+  });
+
+  const heroStyle = useAnimatedStyle(() => {
+    const y = Math.max(0, scrollY.value);
+    return {
+      opacity: interpolate(y, [0, delta * 0.55], [1, 0], Extrapolation.CLAMP),
+      transform: [
+        {
+          translateY: interpolate(y, [0, delta], [0, -16], Extrapolation.CLAMP),
+        },
+      ],
+    };
+  });
+
+  const avatarStyle = useAnimatedStyle(() => {
+    const y = Math.max(0, scrollY.value);
+    return {
+      opacity: interpolate(y, [0, delta * 0.45], [1, 0], Extrapolation.CLAMP),
+      transform: [
+        {
+          scale: interpolate(y, [0, delta], [1, 0.72], Extrapolation.CLAMP),
+        },
+      ],
+    };
+  });
+
+  const washStyle = useAnimatedStyle(() => {
+    const y = Math.max(0, scrollY.value);
+    return {
+      opacity: interpolate(y, [0, delta], [1, 0.35], Extrapolation.CLAMP),
+    };
+  });
 
   return (
-    <View
-      className="overflow-hidden"
-      style={{
-        borderBottomLeftRadius: 32,
-        borderBottomRightRadius: 32,
-      }}
+    <Animated.View
+      pointerEvents="box-none"
+      style={[
+        {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 20,
+          overflow: 'hidden',
+        },
+        shellStyle,
+      ]}
     >
       <LinearGradient
-        colors={['#0B1424', '#101C30', '#152844']}
+        colors={[...BRAND_HEADER_GRADIENT]}
         locations={[0, 0.5, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{
-          paddingTop: topInset + 12,
-          paddingBottom: 32,
-          paddingHorizontal: 22,
-          borderBottomLeftRadius: 32,
-          borderBottomRightRadius: 32,
-        }}
+        style={{ flex: 1 }}
       >
-        {/* Soft theme-blue atmosphere (forest #2563EB), kept low so ink stays dominant */}
-        <View
+        <Animated.View
           pointerEvents="none"
-          className="absolute -right-20 -top-6 h-52 w-52 rounded-full"
-          style={{ backgroundColor: 'rgba(37,99,235,0.14)' }}
+          style={[
+            {
+              position: 'absolute',
+              right: -80,
+              top: -24,
+              height: 208,
+              width: 208,
+              borderRadius: 999,
+              backgroundColor: 'rgba(255,255,255,0.14)',
+            },
+            washStyle,
+          ]}
         />
-        <View
+        <Animated.View
           pointerEvents="none"
-          className="absolute -left-24 bottom-8 h-44 w-44 rounded-full"
-          style={{ backgroundColor: 'rgba(37,99,235,0.08)' }}
+          style={[
+            {
+              position: 'absolute',
+              left: -96,
+              bottom: 32,
+              height: 176,
+              width: 176,
+              borderRadius: 999,
+              backgroundColor: 'rgba(255,255,255,0.08)',
+            },
+            washStyle,
+          ]}
         />
 
-        <View className="flex-row items-start justify-between">
-          <View className="min-w-0 flex-1 pr-4">
-            <Text className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#64748B]">
-              ExpertLearner
-            </Text>
-            <Text className="mt-3 text-[13px] font-medium text-[#93C5FD]">{greeting}</Text>
+        <Animated.View style={[{ flex: 1, paddingHorizontal: 22 }, padStyle]}>
+          <Animated.View
+            style={[
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              },
+              brandRowStyle,
+            ]}
+          >
+            <View
+              style={{
+                minWidth: 0,
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                paddingRight: 12,
+              }}
+            >
+              <Animated.View
+                style={[
+                  {
+                    width: 44,
+                    height: 44,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  },
+                  logoStyle,
+                ]}
+              >
+                <ExpertLearnerLogo size={44} variant="onBlue" />
+              </Animated.View>
+              <View style={{ minWidth: 0, flexShrink: 1, justify: 'relative' }}>
+                <Animated.Text
+                  numberOfLines={1}
+                  style={[
+                    LABEL_TEXT_ANDROID,
+                    {
+                      fontWeight: '600',
+                      textTransform: 'uppercase',
+                    },
+                    brandLabelStyle,
+                    brandEyebrowWeightStyle,
+                  ]}
+                >
+                  ExpertLearner
+                </Animated.Text>
+                <Animated.Text
+                  numberOfLines={1}
+                  style={[
+                    LABEL_TEXT_ANDROID,
+                    {
+                      position: 'absolute',
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      fontWeight: '900',
+                    },
+                    brandLabelStyle,
+                    brandTitleWeightStyle,
+                  ]}
+                >
+                  ExpertLearner
+                </Animated.Text>
+              </View>
+            </View>
+
+            <Animated.View
+              style={[
+                {
+                  height: 56,
+                  width: 56,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.35)',
+                  backgroundColor: 'rgba(255,255,255,0.14)',
+                },
+                avatarStyle,
+              ]}
+            >
+              <Text className="text-lg font-black text-white">{initial}</Text>
+            </Animated.View>
+          </Animated.View>
+
+          <Animated.View style={heroStyle}>
+            <Text className="mt-3 text-[13px] font-medium text-white/85">{greeting}</Text>
             <Text
               className="mt-1 text-[34px] font-black tracking-tight text-white"
               numberOfLines={1}
-              style={{ letterSpacing: -0.8 }}
+              style={[LABEL_TEXT_ANDROID, { letterSpacing: -0.8 }]}
             >
               {name}
             </Text>
-          </View>
-          <View
-            className="h-14 w-14 items-center justify-center rounded-full"
-            style={{
-              borderWidth: 1,
-              borderColor: 'rgba(37,99,235,0.35)',
-              backgroundColor: 'rgba(37,99,235,0.12)',
-            }}
-          >
-            <Text className="text-lg font-black text-white">{initial}</Text>
-          </View>
-        </View>
-
-        {/* Metric glass strip */}
-        <View
-          className="mt-7 overflow-hidden rounded-[22px]"
-          style={{
-            borderWidth: 1,
-            borderColor: 'rgba(148,163,184,0.14)',
-            backgroundColor: 'rgba(11,20,36,0.55)',
-          }}
-        >
-          <View className="flex-row">
-            <View className="flex-1 px-4 py-4">
-              <View className="flex-row items-center gap-1.5">
-                <Ionicons name="flame" size={13} color="#FBBF24" />
-                <Text className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#94A3B8]">
-                  Streak
-                </Text>
-              </View>
-              <Text className="mt-2 text-[28px] font-black text-white" style={{ letterSpacing: -0.6 }}>
-                {streak ? count : '—'}
-                <Text className="text-[13px] font-semibold text-[#64748B]">
-                  {' '}
-                  {count === 1 ? 'day' : 'days'}
-                </Text>
-              </Text>
-              <Text className="mt-1 text-[11px] text-[#64748B]" numberOfLines={1}>
-                Keep it alive today
-              </Text>
-            </View>
-            <View
-              className="w-px self-stretch"
-              style={{ backgroundColor: 'rgba(148,163,184,0.14)' }}
-            />
-            <View className="flex-1 px-4 py-4">
-              <View className="flex-row items-center gap-1.5">
-                <Ionicons name="shield-checkmark" size={13} color="#2563EB" />
-                <Text className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#94A3B8]">
-                  Access
-                </Text>
-              </View>
-              <Text className="mt-2 text-[28px] font-black text-white" style={{ letterSpacing: -0.6 }}>
-                {activePackCount}
-                <Text className="text-[13px] font-semibold text-[#64748B]">
-                  {' '}
-                  active
-                </Text>
-              </Text>
-              <Text className="mt-1 text-[11px] text-[#64748B]" numberOfLines={1}>
-                Subscription packs
-              </Text>
-            </View>
-          </View>
-
-          <View
-            className="flex-row justify-between px-4 pb-4 pt-1"
-            style={{ borderTopWidth: 1, borderTopColor: 'rgba(148,163,184,0.1)' }}
-          >
-            {(days || Array.from({ length: 7 }, () => false)).map((active, i) => {
-              const isToday = i === 6;
-              return (
-                <View key={`d-${i}`} className="items-center gap-1">
-                  <View
-                    className="h-8 w-8 items-center justify-center rounded-full"
-                    style={
-                      active
-                        ? { backgroundColor: '#2563EB' }
-                        : {
-                            backgroundColor: 'rgba(255,255,255,0.04)',
-                            borderWidth: isToday ? 1 : 0,
-                            borderColor: 'rgba(37,99,235,0.45)',
-                          }
-                    }
-                  >
-                    <Text
-                      className="text-[10px] font-bold"
-                      style={{ color: active ? '#FFFFFF' : '#64748B' }}
-                    >
-                      {labels[i]}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       </LinearGradient>
-    </View>
+    </Animated.View>
   );
 }

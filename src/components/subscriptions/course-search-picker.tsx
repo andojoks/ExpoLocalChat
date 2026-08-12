@@ -1,6 +1,7 @@
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { PackCourse } from '@/subscription/api';
+import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 export function CourseSearchPicker({
   courses,
@@ -53,10 +54,17 @@ export function CourseSearchPicker({
       </View>
 
       <View className="mb-3 flex-row items-center justify-between px-0.5">
-        <Text className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
+        <Text
+          className="text-[12px] font-semibold uppercase text-[#94A3B8]"
+          style={[LABEL_TEXT_ANDROID, { letterSpacing: 1.3 }]}
+        >
           Courses
         </Text>
-        <Text className="text-[13px] font-semibold text-[#2563EB]">
+        <Text
+          className="text-[13px] font-semibold text-[#0548E8]"
+          numberOfLines={1}
+          style={LABEL_TEXT_ANDROID}
+        >
           {selected.length}/{max}
         </Text>
       </View>
@@ -93,7 +101,7 @@ export function CourseSearchPicker({
                   <Ionicons
                     name={on ? 'checkmark' : 'book-outline'}
                     size={18}
-                    color={on ? '#2563EB' : '#64748B'}
+                    color={on ? '#0548E8' : '#64748B'}
                   />
                 </View>
                 <View className="mr-2 min-w-0 flex-1">
@@ -108,7 +116,7 @@ export function CourseSearchPicker({
                 <Ionicons
                   name={on ? 'checkbox' : 'square-outline'}
                   size={22}
-                  color={on ? '#2563EB' : '#94A3B8'}
+                  color={on ? '#0548E8' : '#94A3B8'}
                 />
               </Pressable>
             );

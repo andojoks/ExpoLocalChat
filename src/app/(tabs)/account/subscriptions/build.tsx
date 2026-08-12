@@ -31,6 +31,7 @@ import {
   SubInkHeader,
   SubPrimaryButton,
 } from '@/components/subscriptions/sub-chrome';
+import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 type Step = 1 | 2 | 3;
 
@@ -173,7 +174,7 @@ export default function BuildPackScreen() {
               <View
                 key={n}
                 className="h-1.5 flex-1 rounded-full"
-                style={{ backgroundColor: n <= step ? '#2563EB' : 'rgba(148,163,184,0.35)' }}
+                style={{ backgroundColor: n <= step ? '#0548E8' : 'rgba(148,163,184,0.35)' }}
               />
             ))}
           </View>
@@ -184,7 +185,7 @@ export default function BuildPackScreen() {
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#2563EB" />
+          <ActivityIndicator color="#0548E8" />
         </View>
       ) : (
         <>
@@ -238,14 +239,24 @@ export default function BuildPackScreen() {
                               >
                                 <Text
                                   className="text-[12px] font-black"
-                                  style={{ color: on ? '#2563EB' : '#64748B' }}
+                                  style={{ color: on ? '#0548E8' : '#64748B' }}
                                 >
                                   {c.code.slice(0, 2).toUpperCase()}
                                 </Text>
                               </View>
                               <View className="min-w-0 flex-1">
-                                <Text className="text-[15px] font-bold text-ink">{c.name}</Text>
-                                <Text className="mt-0.5 text-[12px] text-slate-500">
+                                <Text
+                                  className="text-[15px] font-bold text-ink"
+                                  numberOfLines={1}
+                                  style={LABEL_TEXT_ANDROID}
+                                >
+                                  {c.name}
+                                </Text>
+                                <Text
+                                  className="mt-0.5 text-[12px] text-slate-500"
+                                  numberOfLines={1}
+                                  style={LABEL_TEXT_ANDROID}
+                                >
                                   up to {c.maxSelectableCourses} courses
                                   {c.sku
                                     ? ` · ${(c.sku.priceCents / 100).toFixed(0)} / ${c.sku.durationDays}d`
@@ -255,7 +266,7 @@ export default function BuildPackScreen() {
                               <Ionicons
                                 name={on ? 'radio-button-on' : 'radio-button-off'}
                                 size={22}
-                                color="#2563EB"
+                                color="#0548E8"
                               />
                             </View>
                           </SubCard>
@@ -283,7 +294,7 @@ export default function BuildPackScreen() {
                 <SubEyebrow>Review</SubEyebrow>
                 <SubCard className="mb-4">
                   <View className="px-4 py-4">
-                    <Text className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">
+                    <Text className="text-[11px] font-semibold uppercase text-[#94A3B8]" style={{ letterSpacing: 1.5 }}>
                       Category
                     </Text>
                     <Text className="mt-1 text-[16px] font-bold text-ink">{category.name}</Text>
@@ -296,7 +307,7 @@ export default function BuildPackScreen() {
                     <SubCard key={c.id}>
                       <View className="flex-row items-center gap-3 px-4 py-3.5">
                         <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-[#EFF6FF]">
-                          <Ionicons name="book-outline" size={18} color="#2563EB" />
+                          <Ionicons name="book-outline" size={18} color="#0548E8" />
                         </View>
                         <View className="min-w-0 flex-1">
                           <Text className="text-[15px] font-semibold text-ink">{c.name}</Text>

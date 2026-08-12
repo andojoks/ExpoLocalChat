@@ -18,10 +18,13 @@ function extra(): Extra {
 /** API host for auth, packs, and on-device model downloads (`extra.apiBaseUrl` in app.json). */
 export function getApiBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
-  if (fromEnv) return fromEnv.replace(/\/$/, '');
   const fromExtra = extra().apiBaseUrl?.trim();
-  if (fromExtra) return fromExtra.replace(/\/$/, '');
-  return 'http://127.0.0.1:3000';
+  let base = (fromEnv || fromExtra || 'http://127.0.0.1:3000').replace(/\/$/, '');
+  // Apex 308→www strips Authorization on fetch; always prefer the canonical host.
+  if (base === 'https://theexpertlearner.com') {
+    base = 'https://www.theexpertlearner.com';
+  }
+  return base;
 }
 
 function absoluteOrJoin(pathOrUrl: string | undefined, fallbackPath: string): string {

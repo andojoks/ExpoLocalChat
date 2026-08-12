@@ -1,4 +1,6 @@
 import { Pressable, ScrollView, Text } from 'react-native';
+import { BRAND_BLUE } from '@/theme/brand';
+import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 const STARTERS = [
   'Show an available paper',
@@ -31,8 +33,8 @@ export function SuggestionChips({
         alignItems: 'center',
         gap: 8,
         paddingHorizontal: 16,
-        paddingTop: 4,
-        paddingBottom: 8,
+        paddingTop: 6,
+        paddingBottom: 10,
       }}
     >
       {chips.map((chip) => (
@@ -40,9 +42,21 @@ export function SuggestionChips({
           key={chip}
           disabled={disabled}
           onPress={() => onSelect(chip)}
-          className={`rounded-xl border border-line bg-white px-3.5 py-2 ${disabled ? 'opacity-50' : ''}`}
+          className={`${disabled ? 'opacity-50' : ''}`}
+          style={{
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#BFDBFE',
+            backgroundColor: '#FFFFFF',
+            paddingHorizontal: 14,
+            paddingVertical: 9,
+          }}
         >
-          <Text className="text-xs font-semibold text-forest" numberOfLines={1}>
+          <Text
+            className="text-[12px] font-semibold"
+            numberOfLines={1}
+            style={[LABEL_TEXT_ANDROID, { color: BRAND_BLUE }]}
+          >
             {chip}
           </Text>
         </Pressable>

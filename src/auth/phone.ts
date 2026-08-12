@@ -6,6 +6,7 @@ import {
 } from 'libphonenumber-js/core';
 import type { CountryCode } from 'libphonenumber-js';
 import rawPhoneMetadata from 'libphonenumber-js/metadata.max.json';
+import { COUNTRY_NAMES_EN } from '@/auth/country-names-en';
 
 function phoneMetadata(): MetadataJson {
   const m = rawPhoneMetadata as MetadataJson & { default?: MetadataJson };
@@ -27,17 +28,32 @@ export type CountryDialOption = {
   /** English country / region name for display + search. */
   name: string;
   label: string;
+  /** Unicode regional-indicator flag emoji (e.g. 🇨🇲). */
+  flag: string;
 };
 
 let cachedCountries: CountryDialOption[] | null = null;
 
+/** ISO 3166-1 alpha-2 → flag emoji via regional indicator symbols. */
+export function countryFlagEmoji(code: string): string {
+  const cc = code.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(cc)) return '🏳️';
+  return String.fromCodePoint(
+    ...[...cc].map((c) => 0x1f1e6 - 65 + c.charCodeAt(0)),
+  );
+}
+
 function countryDisplayName(code: CountryCode): string {
+  const fromTable = COUNTRY_NAMES_EN[code];
+  if (fromTable) return fromTable;
   try {
     const dn = new Intl.DisplayNames(['en'], { type: 'region' });
-    return dn.of(code) || code;
+    const name = dn.of(code);
+    if (name && name !== code) return name;
   } catch {
-    return code;
+    /* Hermes / older runtimes may lack DisplayNames */
   }
+  return code;
 }
 
 /** ISO country list with dial codes and names for the country picker. */
@@ -51,6 +67,7 @@ export function listCountryDialOptions(): CountryDialOption[] {
         callingCode: `+${getCountryCallingCodeCore(code, PHONE_METADATA)}`,
         name,
         label: name,
+        flag: countryFlagEmoji(code),
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));

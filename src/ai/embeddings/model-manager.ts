@@ -13,6 +13,8 @@ export type ModelManifest = {
   entryPoint: string;
   sha256?: string;
   mock?: boolean;
+  /** Public bucket URL — same pattern as pack downloads. */
+  downloadUrl?: string;
 };
 const ROOT = `${FileSystem.documentDirectory}models/`;
 export function validateManifest(value: unknown): value is ModelManifest {
@@ -68,8 +70,11 @@ export async function downloadModel(onProgress: (s: EmbeddingStatus) => void) {
   const directory = installDir(manifest);
   await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
   const archivePath = `${ROOT}${manifest.archive}`,
-    task = FileSystem.createDownloadResumable(
+    archiveUrl =
+      manifest.downloadUrl?.trim() ||
       `${getApiBaseUrl()}/models/embeddinggemma/${manifest.archive}`,
+    task = FileSystem.createDownloadResumable(
+      archiveUrl,
       archivePath,
       {},
       (p) => {

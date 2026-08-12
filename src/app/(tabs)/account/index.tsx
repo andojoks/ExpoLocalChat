@@ -11,7 +11,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/auth/AuthProvider';
 import {
   getAboutUrl,
@@ -21,11 +20,12 @@ import {
 } from '@/config/api';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useFloatingTabClearance } from '@/components/app-tab-bar';
+import { BRAND_BLUE, BRAND_MIST } from '@/theme/brand';
 
 function SectionLabel({ eyebrow }: { eyebrow: string }) {
   return (
     <View className="mb-3 px-0.5">
-      <Text className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+      <Text className="text-[11px] font-semibold uppercase text-[#94A3B8]" style={{ letterSpacing: 2.0 }}>
         {eyebrow}
       </Text>
     </View>
@@ -61,13 +61,15 @@ function AccountRow({
         <Ionicons
           name={icon}
           size={18}
-          color={destructive ? '#B4534B' : '#2563EB'}
+          color={destructive ? '#B4534B' : BRAND_BLUE}
         />
       </View>
       <Text
+        numberOfLines={1}
         className={`min-w-0 flex-1 text-[15px] font-semibold ${
           destructive ? 'text-[#B4534B]' : 'text-ink'
         }`}
+        style={{ flexShrink: 1 }}
       >
         {label}
       </Text>
@@ -129,86 +131,44 @@ export default function AccountScreen() {
   const hasName = Boolean(user?.name?.trim());
 
   return (
-    <View className="flex-1 bg-[#E8EEF5]">
-      <StatusBar style="light" />
+    <View className="flex-1" style={{ backgroundColor: BRAND_MIST }}>
+      <StatusBar style="dark" />
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: tabClearance }}>
         <View
-          className="overflow-hidden"
-          style={{
-            borderBottomLeftRadius: 32,
-            borderBottomRightRadius: 32,
-          }}
+          className="items-center px-5"
+          style={{ paddingTop: insets.top + 20, paddingBottom: 8 }}
         >
-          <LinearGradient
-            colors={['#0B1424', '#101C30', '#152844']}
-            locations={[0, 0.5, 1]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              paddingTop: insets.top + 12,
-              paddingBottom: 28,
-              paddingHorizontal: 22,
-              borderBottomLeftRadius: 32,
-              borderBottomRightRadius: 32,
-            }}
+          <View
+            className="h-24 w-24 items-center justify-center rounded-full"
+            style={{ backgroundColor: BRAND_BLUE }}
           >
-            <View
-              pointerEvents="none"
-              className="absolute -right-20 -top-6 h-52 w-52 rounded-full"
-              style={{ backgroundColor: 'rgba(37,99,235,0.14)' }}
-            />
-            <View
-              pointerEvents="none"
-              className="absolute -left-24 bottom-4 h-44 w-44 rounded-full"
-              style={{ backgroundColor: 'rgba(37,99,235,0.08)' }}
-            />
-
-            <Text className="text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-[#64748B]">
-              Account
+            <Text className="text-3xl font-black text-white">{initial}</Text>
+          </View>
+          <Text
+            className="mt-4 text-center text-[26px] font-black tracking-tight text-ink"
+            numberOfLines={1}
+            style={{ letterSpacing: -0.5 }}
+          >
+            {displayName}
+          </Text>
+          {user?.email ? (
+            <Text className="mt-1.5 text-center text-[13px] text-slate-500" numberOfLines={1}>
+              {user.email}
             </Text>
-
-            <View className="mt-6 items-center">
-              <View
-                className="h-24 w-24 items-center justify-center rounded-full"
-                style={{
-                  borderWidth: 1,
-                  borderColor: 'rgba(37,99,235,0.4)',
-                  backgroundColor: 'rgba(37,99,235,0.16)',
-                }}
-              >
-                <Text className="text-3xl font-black text-white">{initial}</Text>
-              </View>
-              <Text
-                className="mt-4 text-center text-[26px] font-black tracking-tight text-white"
-                numberOfLines={1}
-                style={{ letterSpacing: -0.5 }}
-              >
-                {displayName}
-              </Text>
-              {user?.email ? (
-                <Text className="mt-1.5 text-center text-[13px] text-[#94A3B8]" numberOfLines={1}>
-                  {user.email}
-                </Text>
-              ) : null}
-              <Pressable
-                onPress={() => router.push('/(tabs)/account/profile')}
-                className="mt-5 flex-row items-center justify-center gap-2 rounded-full px-5 py-2.5"
-                style={{
-                  backgroundColor: 'rgba(255,255,255,0.08)',
-                  borderWidth: 1,
-                  borderColor: 'rgba(148,163,184,0.28)',
-                }}
-              >
-                <Ionicons name="create-outline" size={15} color="#93C5FD" />
-                <Text className="text-[13px] font-semibold text-[#93C5FD]">
-                  {hasName ? 'Edit' : 'Complete profile'}
-                </Text>
-              </Pressable>
-            </View>
-          </LinearGradient>
+          ) : null}
+          <Pressable
+            onPress={() => router.push('/(tabs)/account/profile')}
+            className="mt-5 flex-row items-center justify-center gap-2 rounded-2xl px-6 py-3"
+            style={{ backgroundColor: BRAND_BLUE }}
+          >
+            <Ionicons name="create-outline" size={16} color="#FFFFFF" />
+            <Text className="text-[14px] font-bold text-white">
+              {hasName ? 'Edit profile' : 'Complete profile'}
+            </Text>
+          </Pressable>
         </View>
 
-        <View className="bg-[#E8EEF5] px-5 pt-6">
+        <View className="px-5 pt-6" style={{ backgroundColor: BRAND_MIST }}>
           <SectionLabel eyebrow="Settings" />
           <CardGroup>
             <AccountRow

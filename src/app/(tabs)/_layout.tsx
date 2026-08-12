@@ -10,6 +10,7 @@ export default function TabsLayout() {
   const hideTabBar =
     segments.includes('subscriptions') ||
     segments.includes('preferences') ||
+    segments.includes('profile') ||
     inOpenedPack;
 
   return (

@@ -9,11 +9,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { CountryCode } from 'libphonenumber-js';
 import {
+  countryFlagEmoji,
   DEFAULT_PHONE_COUNTRY,
   listCountryDialOptions,
   type CountryDialOption,
 } from '@/auth/phone';
 import { SHEET_BG, SheetHandle, useSheetBackdrop } from '@/components/ui/sheet';
+import { BRAND_BLUE, BRAND_INK, BRAND_MIST } from '@/theme/brand';
 
 type PhoneFieldProps = {
   label?: string;
@@ -23,6 +25,8 @@ type PhoneFieldProps = {
   onNationalChange: (national: string) => void;
   placeholder?: string;
 };
+
+const FIELD_BORDER = '#E8EEF4';
 
 export function PhoneField({
   label = 'Phone (optional)',
@@ -36,8 +40,11 @@ export function PhoneField({
   const sheetRef = useRef<BottomSheetModal>(null);
   const renderBackdrop = useSheetBackdrop();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerKey, setPickerKey] = useState(0);
   const [query, setQuery] = useState('');
-  const snapPoints = useMemo(() => ['72%', '92%'], []);
+  const snapPoints = useMemo(() => ['78%', '94%'], []);
+  const pickerOpenRef = useRef(pickerOpen);
+  pickerOpenRef.current = pickerOpen;
 
   const countries = useMemo(() => listCountryDialOptions(), []);
   const selected = countries.find((c) => c.code === country) ?? {
@@ -45,6 +52,7 @@ export function PhoneField({
     callingCode: '+237',
     name: 'Cameroon',
     label: 'Cameroon',
+    flag: countryFlagEmoji(DEFAULT_PHONE_COUNTRY),
   };
 
   const filtered = useMemo(() => {
@@ -59,52 +67,95 @@ export function PhoneField({
   }, [countries, query]);
 
   useEffect(() => {
-    if (pickerOpen) sheetRef.current?.present();
-    else sheetRef.current?.dismiss();
-  }, [pickerOpen]);
+    if (pickerOpen) {
+      const id = requestAnimationFrame(() => {
+        sheetRef.current?.present();
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    sheetRef.current?.dismiss();
+  }, [pickerOpen, pickerKey]);
 
   const closePicker = useCallback(() => {
     setPickerOpen(false);
     setQuery('');
   }, []);
 
+  const handleDismiss = useCallback(() => {
+    if (!pickerOpenRef.current) return;
+    closePicker();
+  }, [closePicker]);
+
+  const requestClosePicker = useCallback(() => {
+    sheetRef.current?.dismiss();
+  }, []);
+
+  function openPicker() {
+    setQuery('');
+    setPickerKey((k) => k + 1);
+    setPickerOpen(true);
+  }
+
   function pick(option: CountryDialOption) {
     onCountryChange(option.code);
-    closePicker();
+    requestClosePicker();
   }
 
   const renderItem = useCallback(
     ({ item }: { item: CountryDialOption }) => {
       const active = item.code === country;
+      const countryName = item.name || item.label || item.code;
       return (
         <Pressable
           onPress={() => pick(item)}
-          className={`mb-1.5 flex-row items-center gap-3 rounded-2xl px-3.5 py-3.5 ${
-            active ? 'bg-[#EFF6FF]' : 'bg-white'
-          }`}
+          className="mb-2 flex-row items-center gap-3 rounded-[20px] px-3.5 py-3.5"
           style={{
+            backgroundColor: active ? '#EFF6FF' : '#FFFFFF',
             borderWidth: 1,
-            borderColor: active ? '#BFDBFE' : '#E2E8F0',
+            borderColor: active ? '#BFDBFE' : FIELD_BORDER,
           }}
         >
-          <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#0B1424]/5">
-            <Text className="text-[12px] font-black text-[#0B1424]">{item.code}</Text>
+          <Text style={{ fontSize: 28, lineHeight: 34, flexShrink: 0 }}>
+            {item.flag}
+          </Text>
+          <View style={{ flex: 1, minWidth: 0, marginRight: 10 }}>
+            <Text
+              style={{
+                fontSize: 15,
+                lineHeight: 20,
+                fontWeight: '600',
+                color: BRAND_INK,
+                width: '100%',
+              }}
+            >
+              {countryName}
+            </Text>
+            <Text
+              style={{
+                marginTop: 2,
+                fontSize: 12,
+                lineHeight: 16,
+                fontWeight: '600',
+                color: '#64748B',
+              }}
+            >
+              {item.code}
+            </Text>
           </View>
-          <View className="min-w-0 flex-1">
-            <Text className="text-[15px] font-semibold text-ink" numberOfLines={1}>
-              {item.name}
-            </Text>
-            <Text className="mt-0.5 text-[12px] text-slate-500">
-              {item.code} · {item.callingCode}
+          <View style={{ flexShrink: 0, marginLeft: 4, minWidth: 64, alignItems: 'flex-end' }}>
+            <Text
+              style={{
+                fontSize: 14,
+                lineHeight: 20,
+                fontWeight: '600',
+                color: active ? BRAND_BLUE : BRAND_INK,
+                includeFontPadding: false,
+                textAlign: 'right',
+              }}
+            >
+              {`${item.callingCode}\u00A0`}
             </Text>
           </View>
-          {active ? (
-            <Ionicons name="checkmark-circle" size={20} color="#2563EB" />
-          ) : (
-            <Text className="text-[14px] font-semibold text-slate-500">
-              {item.callingCode}
-            </Text>
-          )}
         </Pressable>
       );
     },
@@ -113,34 +164,49 @@ export function PhoneField({
 
   return (
     <View className="mb-3.5">
-      <Text className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">
+      <Text
+        className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase text-[#94A3B8]"
+        style={{ letterSpacing: 1.5 }}
+      >
         {label}
       </Text>
-      <View className="flex-row items-center gap-2">
+
+      {/* Combined field: flag picker (left) + national number */}
+      <View
+        className="flex-row items-center overflow-hidden"
+        style={{
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: FIELD_BORDER,
+          backgroundColor: '#FFFFFF',
+        }}
+      >
         <Pressable
-          onPress={() => setPickerOpen(true)}
-          className="min-w-[108px] flex-row items-center justify-center gap-1 px-2.5 py-3.5"
+          onPress={openPicker}
+          accessibilityRole="button"
+          accessibilityLabel={`Country ${selected.name}, ${selected.callingCode}`}
+          className="flex-row items-center gap-2 px-3.5 py-3.5"
           style={{
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: '#E8EEF4',
-            backgroundColor: '#FFFFFF',
+            flexGrow: 0,
+            flexShrink: 0,
+            minWidth: 124,
+            borderRightWidth: 1,
+            borderRightColor: FIELD_BORDER,
+            backgroundColor: '#FAFBFD',
           }}
         >
-          <Text className="text-[15px] font-semibold text-ink">
-            {selected.code} {selected.callingCode}
+          <Text style={{ fontSize: 22, lineHeight: 26 }}>{selected.flag}</Text>
+          <Text
+            className="text-[15px] font-semibold text-ink"
+            style={{ flexShrink: 0 }}
+          >
+            {selected.callingCode}
           </Text>
           <Ionicons name="chevron-down" size={14} color="#64748B" />
         </Pressable>
         <TextInput
           placeholderTextColor="#94A3B8"
-          className="flex-1 px-4 py-3.5 text-[15px] text-ink"
-          style={{
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: '#E8EEF4',
-            backgroundColor: '#FFFFFF',
-          }}
+          className="min-w-0 flex-1 px-3.5 py-3.5 text-[15px] text-ink"
           keyboardType="phone-pad"
           value={nationalNumber}
           onChangeText={onNationalChange}
@@ -149,6 +215,7 @@ export function PhoneField({
       </View>
 
       <BottomSheetModal
+        key={pickerKey}
         ref={sheetRef}
         snapPoints={snapPoints}
         enableDynamicSizing={false}
@@ -156,7 +223,7 @@ export function PhoneField({
         keyboardBehavior="extend"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
-        onDismiss={closePicker}
+        onDismiss={handleDismiss}
         backdropComponent={renderBackdrop}
         handleComponent={SheetHandle}
         backgroundStyle={{
@@ -165,29 +232,51 @@ export function PhoneField({
           borderTopRightRadius: 28,
         }}
       >
-        <View className="flex-row items-center justify-between px-5 pb-2 pt-1">
-          <Text className="text-lg font-bold text-ink">Select country</Text>
+        <View className="flex-row items-center justify-between px-5 pb-3 pt-1">
+          <View className="min-w-0 flex-1 pr-3">
+            <Text
+              className="text-[11px] font-semibold uppercase text-[#94A3B8]"
+              style={{ letterSpacing: 1.6 }}
+            >
+              Phone
+            </Text>
+            <Text
+              numberOfLines={1}
+              className="mt-1 text-[22px] font-black tracking-tight text-ink"
+              style={{ flexShrink: 1 }}
+            >
+              Select country
+            </Text>
+          </View>
           <Pressable
-            onPress={closePicker}
+            onPress={requestClosePicker}
             hitSlop={10}
-            className="h-9 w-9 items-center justify-center rounded-2xl bg-white"
-            style={{ borderWidth: 1, borderColor: '#E8EEF4' }}
+            className="h-10 w-10 items-center justify-center rounded-full bg-white"
+            style={{ borderWidth: 1, borderColor: FIELD_BORDER }}
           >
-            <Ionicons name="close" size={18} color="#0B1424" />
+            <Ionicons name="close" size={18} color={BRAND_INK} />
           </Pressable>
         </View>
 
         <View className="px-5 pb-3">
-          <View className="flex-row items-center gap-2 rounded-2xl border border-line bg-white px-3.5 py-3">
+          <View
+            className="flex-row items-center gap-2.5 px-3.5 py-3"
+            style={{
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: FIELD_BORDER,
+              backgroundColor: '#FFFFFF',
+            }}
+          >
             <Ionicons name="search" size={18} color="#94A3B8" />
             <BottomSheetTextInput
-              placeholder="Search country, code, or +dial"
+              placeholder="Search country or dial code"
               placeholderTextColor="#94A3B8"
               value={query}
               onChangeText={setQuery}
               autoCapitalize="none"
               autoCorrect={false}
-              style={{ flex: 1, fontSize: 15, color: '#0B1424', padding: 0 }}
+              style={{ flex: 1, fontSize: 15, color: BRAND_INK, padding: 0 }}
             />
             {query ? (
               <Pressable onPress={() => setQuery('')} hitSlop={8}>
@@ -202,12 +291,18 @@ export function PhoneField({
           keyExtractor={(item: CountryDialOption) => item.code}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
-            paddingHorizontal: 12,
-            paddingBottom: Math.max(insets.bottom, 16),
+            paddingHorizontal: 16,
+            paddingBottom: Math.max(insets.bottom, 20) + 8,
           }}
           ListEmptyComponent={
-            <View className="items-center px-6 py-10">
-              <Text className="text-[14px] text-slate-500">
+            <View className="items-center px-6 py-12">
+              <View
+                className="mb-3 h-12 w-12 items-center justify-center rounded-2xl"
+                style={{ backgroundColor: BRAND_MIST }}
+              >
+                <Ionicons name="globe-outline" size={22} color="#94A3B8" />
+              </View>
+              <Text className="text-center text-[14px] text-slate-500">
                 No countries match “{query}”
               </Text>
             </View>

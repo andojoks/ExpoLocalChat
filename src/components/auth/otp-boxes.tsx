@@ -97,9 +97,26 @@ export function ResendCooldown({
       }}
       className="items-center py-2"
     >
-      <Text className={`text-sm font-semibold ${left > 0 ? 'text-slate-400' : 'text-[#2563EB]'}`}>
-        {left > 0 ? `Resend code in ${left}s` : busy ? 'Sending…' : 'Resend code'}
-      </Text>
+      {left > 0 ? (
+        <View className="flex-row items-center justify-center">
+          <Text className="text-sm font-semibold text-slate-400">Resend code in </Text>
+          {/* Fixed slot so 60→9 doesn't reflow/flash the centered label. */}
+          <Text
+            className="text-sm font-semibold text-slate-400"
+            style={{
+              minWidth: 44,
+              textAlign: 'left',
+              fontVariant: ['tabular-nums'],
+            }}
+          >
+            {left}s
+          </Text>
+        </View>
+      ) : (
+        <Text className={`text-sm font-semibold ${busy ? 'text-slate-400' : 'text-[#0548E8]'}`}>
+          {busy ? 'Sending…' : 'Resend code'}
+        </Text>
+      )}
     </Pressable>
   );
 }

@@ -1,6 +1,10 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import forge from 'node-forge';
+import {
+  aesGcmDecryptPack,
+  generateDeviceRsaKeyPair,
+  rsaOaepSha256Decrypt,
+} from '@/auth/device-crypto';
 
 const PRIV_KEY = 'qb_device_priv_b64';
 const PUB_KEY = 'qb_device_pub_b64';
@@ -73,14 +77,12 @@ export async function ensureDeviceKeyPair(): Promise<{
       };
     }
 
-    const pair = forge.pki.rsa.generateKeyPair({ bits: 2048, workers: 0 });
-    const publicKeyPem = forge.pki.publicKeyToPem(pair.publicKey);
-    const privateKeyPem = forge.pki.privateKeyToPem(pair.privateKey);
+    const pair = await generateDeviceRsaKeyPair();
     await Promise.all([
-      setItem(PUB_KEY, pemBody(publicKeyPem)),
-      setItem(PRIV_KEY, pemBody(privateKeyPem)),
+      setItem(PUB_KEY, pemBody(pair.publicKeyPem)),
+      setItem(PRIV_KEY, pemBody(pair.privateKeyPem)),
     ]);
-    return { publicKeyPem, privateKeyPem };
+    return pair;
   })();
 
   try {
@@ -114,47 +116,13 @@ export async function clearDeviceCrypto() {
 /** Unwrap RSA-OAEP-SHA256 ciphertext (base64) → AES key bytes as base64. */
 export async function unwrapPackContentKey(wrappedBase64: string): Promise<string> {
   const { privateKeyPem } = await ensureDeviceKeyPair();
-  const privateKey = forge.pki.privateKeyFromPem(privateKeyPem);
-  const bytes = forge.util.decode64(wrappedBase64);
-  const decrypted = privateKey.decrypt(bytes, 'RSA-OAEP', {
-    md: forge.md.sha256.create(),
-    mgf1: { md: forge.md.sha256.create() },
-  });
-  return forge.util.encode64(decrypted);
+  return rsaOaepSha256Decrypt(privateKeyPem, wrappedBase64);
 }
-
-const ELP1 = 'ELP1';
 
 /**
  * Decrypt ELP1 | iv(12) | ciphertext|tag → UTF-8 pack JSON string.
  * Plaintext packs (legacy) are returned as-is when no magic header.
  */
 export function decryptPackBlob(bytes: Uint8Array, packKeyBase64: string): string {
-  const magic = String.fromCharCode(bytes[0]!, bytes[1]!, bytes[2]!, bytes[3]!);
-  if (magic !== ELP1) {
-    return new TextDecoder().decode(bytes);
-  }
-  if (bytes.length < 4 + 12 + 16) {
-    throw new Error('Invalid encrypted pack');
-  }
-  const iv = bytes.subarray(4, 16);
-  const tag = bytes.subarray(bytes.length - 16);
-  const data = bytes.subarray(16, bytes.length - 16);
-  const keyBin = forge.util.decode64(packKeyBase64);
-  const decipher = forge.cipher.createDecipher('AES-GCM', keyBin);
-  decipher.start({
-    iv: forge.util.createBuffer(uint8ToBinary(iv)),
-    tag: forge.util.createBuffer(uint8ToBinary(tag)),
-    tagLength: 128,
-  });
-  decipher.update(forge.util.createBuffer(uint8ToBinary(data)));
-  const ok = decipher.finish();
-  if (!ok) throw new Error('Pack decryption failed (bad key or corrupt file)');
-  return decipher.output.toString();
-}
-
-function uint8ToBinary(u8: Uint8Array): string {
-  let s = '';
-  for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]!);
-  return s;
+  return aesGcmDecryptPack(bytes, packKeyBase64);
 }
