@@ -1,4 +1,4 @@
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -73,12 +73,11 @@ const TAB_META: Record<
 
 /** Chip height (matches minHeight on the floating dock). */
 export const FLOATING_TAB_CHIP_HEIGHT = 64;
-/** Space above / below the chip so it reads as floating (top includes room for upward shadow). */
+/** Space above the chip so it reads as floating (includes room for upward shadow). */
 export const FLOATING_TAB_TOP_GAP = 12;
-export const FLOATING_TAB_BOTTOM_GAP = 8;
 
 export function floatingTabSafeBottom(safeBottom: number) {
-  return Math.max(safeBottom, Platform.OS === 'android' ? 14 : 8);
+  return safeBottom;
 }
 
 /**
@@ -90,7 +89,6 @@ export function useFloatingTabClearance(extra = 16) {
   return (
     FLOATING_TAB_TOP_GAP +
     FLOATING_TAB_CHIP_HEIGHT +
-    FLOATING_TAB_BOTTOM_GAP +
     floatingTabSafeBottom(insets.bottom) +
     extra
   );
@@ -114,7 +112,7 @@ export function AppTabBar({ state, descriptors, navigation }: TabBarProps) {
         bottom: 0,
         backgroundColor: 'transparent',
         paddingHorizontal: 16,
-        paddingBottom: bottomInset + FLOATING_TAB_BOTTOM_GAP,
+        paddingBottom: bottomInset,
         paddingTop: FLOATING_TAB_TOP_GAP,
       }}
     >

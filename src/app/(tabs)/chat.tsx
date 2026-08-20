@@ -213,21 +213,21 @@ export default function Chat() {
   async function prepare() {
     setDownloadError('');
     try {
-      setModel({ kind: 'downloading', progress: 0.02, label: 'Preparing agent data…' });
+      setModel({ kind: 'downloading', progress: 0.02, label: 'Fetching chat model…' });
       await downloadChatModel((label, progress) => {
         setModel({
           kind: 'downloading',
-          progress: Math.min(0.45, progress * 0.45),
-          label: label || 'Preparing agent data…',
+          progress: Math.min(0.5, progress * 0.5),
+          label,
         });
       });
-      setModel({ kind: 'downloading', progress: 0.5, label: 'Almost ready…' });
+      setModel({ kind: 'downloading', progress: 0.5, label: 'Fetching embedding model…' });
       const downloaded = await downloadModel((status) => {
         if (status.kind === 'downloading') {
           setModel({
             kind: 'downloading',
             progress: 0.5 + status.progress * 0.5,
-            label: 'Almost ready…',
+            label: status.label,
           });
           return;
         }
@@ -236,9 +236,13 @@ export default function Chat() {
       const p = downloaded.manifest.mock ? new HashEmbeddingProvider() : createPlatformProvider();
       await p.initialize(downloaded.path);
       setProvider(p);
-    } catch {
+    } catch (error) {
       setModel({ kind: 'missing', progress: 0, label: 'Ready when you are' });
-      setDownloadError('Couldn’t download agent data. Check your connection and try again.');
+      setDownloadError(
+        error instanceof Error
+          ? `Download failed: ${error.message}`
+          : 'Download failed. Tap Retry to resume, or it will restart if resume fails.',
+      );
     }
   }
 
@@ -879,7 +883,7 @@ function ModelGate({
               className="font-bold text-white"
               style={{ width: '100%', textAlign: 'center', flexShrink: 0 }}
             >
-              {downloading ? 'Downloading…' : 'Download'}
+              {downloading ? 'Downloading…' : message ? 'Retry' : 'Download'}
             </Text>
           </Pressable>
         </View>

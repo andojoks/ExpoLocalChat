@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,7 +31,7 @@ function PrefCard({
 }) {
   return (
     <View
-      className="flex-row items-center gap-3.5 rounded-[24px] bg-white px-4 py-4"
+      className="flex-row items-center gap-3.5 rounded-[24px] bg-white py-4 pl-4 pr-3.5"
       style={{
         borderWidth: 1,
         borderColor: '#E8EEF4',
@@ -45,16 +45,30 @@ function PrefCard({
       <View className="h-11 w-11 items-center justify-center rounded-[14px] bg-[#EFF6FF]">
         <Ionicons name={icon} size={20} color={BRAND_BLUE} />
       </View>
-      <View className="min-w-0 flex-1 pr-2">
+      <View className="min-w-0 flex-1 pr-3">
         <Text className="text-[15px] font-bold text-ink">{title}</Text>
         <Text className="mt-1 text-[13px] leading-5 text-slate-500">{description}</Text>
       </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
-        thumbColor={value ? BRAND_BLUE : '#F8FAFC'}
-      />
+      {/* Fixed slot: Android Switch remeasures on toggle if thumbColor / parent width flex. */}
+      <View
+        pointerEvents="box-none"
+        style={{
+          width: 52,
+          height: 32,
+          flexShrink: 0,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Switch
+          value={value}
+          onValueChange={onValueChange}
+          trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
+          thumbColor="#FFFFFF"
+          ios_backgroundColor="#CBD5E1"
+          style={Platform.OS === 'android' ? { width: 52, height: 32 } : undefined}
+        />
+      </View>
     </View>
   );
 }

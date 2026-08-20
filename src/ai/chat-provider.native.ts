@@ -1,9 +1,10 @@
-﻿import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import { initLlama, type LlamaContext } from 'llama.rn';
 import type { ChatModel, GenerationOptions, TutorTurn } from './chat-model';
 import { getApiBaseUrl } from '@/config/api';
+import { downloadResumableFile } from './resumable-download';
 
 /** SmolLM2-135M Q4_0 — small on-device tutor; OpenCL-friendly quant. */
 const FILE = 'SmolLM2-135M.Q4_0.gguf';
@@ -12,6 +13,7 @@ const MODEL_DIR = `${FileSystem.documentDirectory}models/`;
 const PATH = `${MODEL_DIR}${FILE}`;
 /** Cached at download time — chat init never fetches the remote manifest. */
 const LOCAL_MANIFEST_PATH = `${MODEL_DIR}smollm2-manifest.json`;
+const DOWNLOAD_SNAPSHOT_PATH = `${MODEL_DIR}smollm2-download.json`;
 const DEFAULT_BYTES = 91726304;
 /** Offload as many layers as fit; Metal (iOS) / OpenCL+Hexagon (Android when supported). */
 const N_GPU_LAYERS = 99;
@@ -67,9 +69,8 @@ export async function downloadChatModel(
   onProgress?: (label: string, progress: number) => void,
 ): Promise<ChatManifest> {
   await FileSystem.makeDirectoryAsync(MODEL_DIR, { intermediates: true });
-  onProgress?.('Fetching chat model manifest…', 0.05);
+  onProgress?.('Fetching chat model…', 0.02);
   const manifest = await fetchRemoteChatManifest();
-  onProgress?.('Downloading chat model…', 0.1);
   await downloadGguf(manifest, onProgress);
   await writeLocalChatManifest(manifest);
   onProgress?.('Chat model ready', 1);
@@ -256,19 +257,15 @@ function isHttpUrl(value: string | undefined): value is string {
 async function fetchRemoteChatManifest(): Promise<ChatManifest> {
   const override = process.env.EXPO_PUBLIC_CHAT_MODEL_URL?.trim();
   if (override) {
-    console.log(`[chat] model override EXPO_PUBLIC_CHAT_MODEL_URL=${override}`);
     return { file: FILE, bytes: DEFAULT_BYTES, available: true, downloadUrl: override };
   }
-  const manifestUrl = `${getApiBaseUrl()}/models/${MODEL_ROUTE}/manifest.json`;
-  console.log(`[chat] model manifest GET ${manifestUrl}`);
-  const response = await fetch(manifestUrl);
+  const response = await fetch(`${getApiBaseUrl()}/models/${MODEL_ROUTE}/manifest.json`);
   if (!response.ok) throw Error(`Chat model manifest failed (${response.status})`);
   const manifest = (await response.json()) as Partial<ChatManifest>;
   const downloadUrl = manifest.downloadUrl?.trim();
   if (manifest.file !== FILE || !manifest.available || !manifest.bytes || !isHttpUrl(downloadUrl)) {
     throw Error('SmolLM2 chat model is not available on the model server');
   }
-  console.log(`[chat] model downloadUrl ${downloadUrl}`);
   return { file: FILE, bytes: manifest.bytes, available: true, downloadUrl };
 }
 
@@ -280,15 +277,7 @@ async function downloadGguf(
   if (!isHttpUrl(url)) {
     throw Error('Chat model manifest is missing a public download URL');
   }
-  console.log(`[chat] model download GET ${url}`);
 
-  const info = await FileSystem.getInfoAsync(PATH);
-  if (info.exists && 'size' in info && info.size === manifest.bytes) {
-    console.log(`[chat] model already on device (${manifest.bytes} bytes) — skip download`);
-    return;
-  }
-
-  if (info.exists) await FileSystem.deleteAsync(PATH, { idempotent: true });
   for (const legacy of [
     'qwen2.5-0.5b-instruct-q4_0.gguf',
     'qwen2.5-0.5b-instruct-q4_k_m.gguf',
@@ -296,49 +285,20 @@ async function downloadGguf(
     await FileSystem.deleteAsync(`${MODEL_DIR}${legacy}`, { idempotent: true });
   }
 
-  // Prefer resumable download for progress when available.
-  if (typeof FileSystem.createDownloadResumable === 'function') {
-    const task = FileSystem.createDownloadResumable(
-      url,
-      PATH,
-      {},
-      (p) => {
-        const total = Math.max(p.totalBytesExpectedToWrite || manifest.bytes, 1);
-        const fraction = Math.min(0.95, 0.1 + 0.85 * (p.totalBytesWritten / total));
-        onProgress?.(
-          `Downloading chat model ${Math.round((100 * p.totalBytesWritten) / total)}%`,
-          fraction,
-        );
-      },
-    );
-    const result = await task.downloadAsync();
-    console.log(
-      `[chat] model download finished status=${result?.status ?? 'none'} uri=${result?.uri ?? PATH}`,
-    );
-    if (!result || result.status < 200 || result.status >= 300) {
-      await FileSystem.deleteAsync(PATH, { idempotent: true });
-      throw Error(`Chat model download failed (${result?.status ?? 'no result'})`);
-    }
-  } else {
-    onProgress?.('Downloading chat model…', 0.4);
-    let result: { status: number };
-    try {
-      result = await FileSystem.downloadAsync(url, PATH);
-    } catch (error) {
-      await FileSystem.deleteAsync(PATH, { idempotent: true });
-      throw Error(
-        `Chat model download failed (offline or cannot reach ${url}): ${String(error)}`,
-      );
-    }
-    if (result.status < 200 || result.status >= 300) {
-      await FileSystem.deleteAsync(PATH, { idempotent: true });
-      throw Error(`Chat model download failed (${result.status})`);
-    }
-  }
-
-  const downloaded = await FileSystem.getInfoAsync(PATH);
-  if (!downloaded.exists || !('size' in downloaded) || downloaded.size !== manifest.bytes) {
-    await FileSystem.deleteAsync(PATH, { idempotent: true });
-    throw Error(`Chat model download incomplete. Expected ${manifest.bytes} bytes.`);
-  }
+  await downloadResumableFile({
+    url,
+    dest: PATH,
+    expectedBytes: manifest.bytes,
+    snapshotPath: DOWNLOAD_SNAPSHOT_PATH,
+    onProgress(written, total, phase) {
+      const pct = Math.round((100 * written) / Math.max(total, 1));
+      const prefix =
+        phase === 'resume'
+          ? 'Resuming chat model'
+          : phase === 'retry'
+            ? 'Retrying chat model'
+            : 'Chat model';
+      onProgress?.(`${prefix} ${pct}%`, Math.min(0.98, 0.04 + 0.94 * (written / Math.max(total, 1))));
+    },
+  });
 }

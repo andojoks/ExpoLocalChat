@@ -28,7 +28,6 @@ import {
   isAccountSuspendedError,
   setForcedLogoutHandler,
 } from '@/auth/account-suspended';
-import { SETUP_STEPS, type SetupProgress } from '@/auth/setup-progress';
 import { clearPendingAuth } from '@/auth/pending-auth';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
@@ -36,8 +35,6 @@ type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 type AuthContextValue = {
   status: AuthStatus;
   user: AuthUser | null;
-  /** Cold-start bootstrap progress while status is `loading`. */
-  setupProgress: SetupProgress | null;
   signInWithPassword: (identifier: string, password: string) => Promise<void>;
   signUp: (input: {
     name?: string;
@@ -120,26 +117,14 @@ function warmPostAuthSideEffects() {
   );
 }
 
-/** Let React paint setup progress before a long sync task (e.g. RSA) blocks the JS thread. */
-function yieldForUiPaint(): Promise<void> {
-  return new Promise((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => resolve());
-    });
-  });
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const db = useSQLiteContext();
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [setupProgress, setSetupProgress] = useState<SetupProgress | null>(SETUP_STEPS.storage);
 
   const finishBootstrap = useCallback((next: AuthStatus, nextUser: AuthUser | null) => {
-    setSetupProgress(SETUP_STEPS.finish);
     setUser(nextUser);
     setStatus(next);
-    setSetupProgress(null);
     if (next === 'authenticated') {
       void clearPendingAuth();
     }
@@ -156,7 +141,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await dropPackContentKey();
     setUser(null);
     setStatus('unauthenticated');
-    setSetupProgress(null);
   }, []);
 
   useEffect(() => {
@@ -164,7 +148,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await dropPackContentKey();
       setUser(null);
       setStatus('unauthenticated');
-      setSetupProgress(null);
     });
     return () => setForcedLogoutHandler(null);
   }, []);
@@ -187,15 +170,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshSession = useCallback(async () => {
     setStatus('loading');
-    setSetupProgress(SETUP_STEPS.storage);
 
     await getStableDeviceId().catch(() => undefined);
     const access = await getAccessToken();
     const refresh = await getRefreshToken();
 
-    // Await device crypto so first-launch RSA shows as step 2 (not a frozen spinner).
-    setSetupProgress(SETUP_STEPS.secure);
-    await yieldForUiPaint();
+    // Await device crypto before leaving loading (first launch = RSA keygen).
     await ensureDeviceKeyPair().catch(() => undefined);
 
     if (!access && !refresh) {
@@ -203,14 +183,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setSetupProgress(SETUP_STEPS.session);
-
     // Everlasting JWT: paint authenticated after local checks; refresh profile in background.
     if (access && isEverlastingMobileAccessToken(access)) {
       const stub = userFromAccessToken(access);
       if (stub) {
         await reconcileContentOwner(db, stub.id).catch(() => undefined);
-        setSetupProgress(SETUP_STEPS.finish);
         finishBootstrap('authenticated', stub);
 
         void (async () => {
@@ -246,7 +223,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const me = await authApi.fetchMe(access);
         await reconcileContentOwner(db, me.id);
-        setSetupProgress(SETUP_STEPS.finish);
         try {
           await syncPackContentKey();
         } catch {
@@ -273,13 +249,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (refresh) {
       try {
-        setSetupProgress(SETUP_STEPS.secure);
-        await yieldForUiPaint();
         const device = await withDeviceAuth();
-        setSetupProgress(SETUP_STEPS.session);
-        await yieldForUiPaint();
         const pair = await authApi.refresh(refresh, device);
-        setSetupProgress(SETUP_STEPS.finish);
         const nextUser = await applySession(pair);
         finishBootstrap('authenticated', nextUser);
         return;
@@ -420,7 +391,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       status,
       user,
-      setupProgress,
       signInWithPassword,
       signUp,
       verifyEmail,
@@ -436,7 +406,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       status,
       user,
-      setupProgress,
       signInWithPassword,
       signUp,
       verifyEmail,

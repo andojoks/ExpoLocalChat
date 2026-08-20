@@ -34,12 +34,17 @@ export default function SignupScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const emailFilled = email.trim().includes('@');
+  const passwordsOk =
+    isPasswordLongEnough(password) &&
+    confirmPassword.length > 0 &&
+    password === confirmPassword;
+  const phoneOk = !validateOptionalPhone(phoneNational, phoneCountry);
+  const canSubmit = emailFilled && passwordsOk && phoneOk && accepted && !busy;
+
   async function onSubmit() {
+    if (!canSubmit) return;
     setError(null);
-    if (!accepted) {
-      setError('Please accept the terms of service to continue.');
-      return;
-    }
     if (!isPasswordLongEnough(password)) {
       setError(`Password must be at least ${PASSWORD_MIN_LENGTH} characters.`);
       return;
@@ -134,7 +139,7 @@ export default function SignupScreen() {
       </Pressable>
       <AuthPrimaryButton
         label={busy ? 'Creating…' : 'Create account'}
-        disabled={busy}
+        disabled={!canSubmit}
         onPress={onSubmit}
       />
       <AuthLink

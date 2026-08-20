@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/auth/AuthProvider';
 import {
   getAboutUrl,
@@ -20,7 +21,8 @@ import {
 } from '@/config/api';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useFloatingTabClearance } from '@/components/app-tab-bar';
-import { BRAND_BLUE, BRAND_MIST } from '@/theme/brand';
+import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
+import { BRAND_BLUE, BRAND_HEADER_GRADIENT, BRAND_MIST } from '@/theme/brand';
 
 function SectionLabel({ eyebrow }: { eyebrow: string }) {
   return (
@@ -132,40 +134,89 @@ export default function AccountScreen() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: BRAND_MIST }}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: tabClearance }}>
         <View
-          className="items-center px-5"
-          style={{ paddingTop: insets.top + 20, paddingBottom: 8 }}
+          className="overflow-hidden"
+          style={{
+            borderBottomLeftRadius: 32,
+            borderBottomRightRadius: 32,
+          }}
         >
-          <View
-            className="h-24 w-24 items-center justify-center rounded-full"
-            style={{ backgroundColor: BRAND_BLUE }}
+          <LinearGradient
+            colors={[...BRAND_HEADER_GRADIENT]}
+            locations={[0, 0.5, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              paddingTop: insets.top + 12,
+              paddingBottom: 28,
+              paddingHorizontal: 22,
+              borderBottomLeftRadius: 32,
+              borderBottomRightRadius: 32,
+            }}
           >
-            <Text className="text-3xl font-black text-white">{initial}</Text>
-          </View>
-          <Text
-            className="mt-4 text-center text-[26px] font-black tracking-tight text-ink"
-            numberOfLines={1}
-            style={{ letterSpacing: -0.5 }}
-          >
-            {displayName}
-          </Text>
-          {user?.email ? (
-            <Text className="mt-1.5 text-center text-[13px] text-slate-500" numberOfLines={1}>
-              {user.email}
+            <View
+              pointerEvents="none"
+              className="absolute -right-20 -top-6 h-52 w-52 rounded-full"
+              style={{ backgroundColor: 'rgba(255,255,255,0.14)' }}
+            />
+            <View
+              pointerEvents="none"
+              className="absolute -left-24 bottom-4 h-44 w-44 rounded-full"
+              style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+            />
+
+            <Text
+              className="text-center text-[11px] font-semibold uppercase text-white/70"
+              style={[LABEL_TEXT_ANDROID, { letterSpacing: 2.2 }]}
+            >
+              Account
             </Text>
-          ) : null}
-          <Pressable
-            onPress={() => router.push('/(tabs)/account/profile')}
-            className="mt-5 flex-row items-center justify-center gap-2 rounded-2xl px-6 py-3"
-            style={{ backgroundColor: BRAND_BLUE }}
-          >
-            <Ionicons name="create-outline" size={16} color="#FFFFFF" />
-            <Text className="text-[14px] font-bold text-white">
-              {hasName ? 'Edit profile' : 'Complete profile'}
-            </Text>
-          </Pressable>
+
+            <View className="mt-6 items-center">
+              <View
+                className="h-24 w-24 items-center justify-center rounded-full"
+                style={{
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.35)',
+                  backgroundColor: 'rgba(255,255,255,0.16)',
+                }}
+              >
+                <Text className="text-3xl font-black text-white">{initial}</Text>
+              </View>
+              <Text
+                className="mt-4 text-center text-[26px] font-black tracking-tight text-white"
+                numberOfLines={1}
+                style={[LABEL_TEXT_ANDROID, { letterSpacing: -0.5 }]}
+              >
+                {displayName}
+              </Text>
+              {user?.email ? (
+                <Text
+                  className="mt-1.5 text-center text-[13px] text-white/75"
+                  numberOfLines={1}
+                  style={LABEL_TEXT_ANDROID}
+                >
+                  {user.email}
+                </Text>
+              ) : null}
+              <Pressable
+                onPress={() => router.push('/(tabs)/account/profile')}
+                className="mt-5 flex-row items-center justify-center gap-2 rounded-full px-5 py-2.5"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.14)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.28)',
+                }}
+              >
+                <Ionicons name="create-outline" size={15} color="#FFFFFF" />
+                <Text className="text-[13px] font-semibold text-white">
+                  {hasName ? 'Edit' : 'Complete profile'}
+                </Text>
+              </Pressable>
+            </View>
+          </LinearGradient>
         </View>
 
         <View className="px-5 pt-6" style={{ backgroundColor: BRAND_MIST }}>

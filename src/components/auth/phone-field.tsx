@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 import {
   BottomSheetFlatList,
   BottomSheetModal,
@@ -38,13 +38,11 @@ export function PhoneField({
 }: PhoneFieldProps) {
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheetModal>(null);
+  const numberInputRef = useRef<TextInput>(null);
   const renderBackdrop = useSheetBackdrop();
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerKey, setPickerKey] = useState(0);
   const [query, setQuery] = useState('');
   const snapPoints = useMemo(() => ['78%', '94%'], []);
-  const pickerOpenRef = useRef(pickerOpen);
-  pickerOpenRef.current = pickerOpen;
+  const pickerOpenRef = useRef(false);
 
   const countries = useMemo(() => listCountryDialOptions(), []);
   const selected = countries.find((c) => c.code === country) ?? {
@@ -66,18 +64,8 @@ export function PhoneField({
     });
   }, [countries, query]);
 
-  useEffect(() => {
-    if (pickerOpen) {
-      const id = requestAnimationFrame(() => {
-        sheetRef.current?.present();
-      });
-      return () => cancelAnimationFrame(id);
-    }
-    sheetRef.current?.dismiss();
-  }, [pickerOpen, pickerKey]);
-
   const closePicker = useCallback(() => {
-    setPickerOpen(false);
+    pickerOpenRef.current = false;
     setQuery('');
   }, []);
 
@@ -91,9 +79,11 @@ export function PhoneField({
   }, []);
 
   function openPicker() {
+    numberInputRef.current?.blur();
+    Keyboard.dismiss();
     setQuery('');
-    setPickerKey((k) => k + 1);
-    setPickerOpen(true);
+    pickerOpenRef.current = true;
+    sheetRef.current?.present();
   }
 
   function pick(option: CountryDialOption) {
@@ -205,6 +195,7 @@ export function PhoneField({
           <Ionicons name="chevron-down" size={14} color="#64748B" />
         </Pressable>
         <TextInput
+          ref={numberInputRef}
           placeholderTextColor="#94A3B8"
           className="min-w-0 flex-1 px-3.5 py-3.5 text-[15px] text-ink"
           keyboardType="phone-pad"
@@ -215,13 +206,12 @@ export function PhoneField({
       </View>
 
       <BottomSheetModal
-        key={pickerKey}
         ref={sheetRef}
         snapPoints={snapPoints}
         enableDynamicSizing={false}
         enablePanDownToClose
         keyboardBehavior="extend"
-        keyboardBlurBehavior="restore"
+        keyboardBlurBehavior="none"
         android_keyboardInputMode="adjustResize"
         onDismiss={handleDismiss}
         backdropComponent={renderBackdrop}
