@@ -24,6 +24,7 @@ import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useFloatingTabClearance } from '@/components/app-tab-bar';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 import { BRAND_BLUE, BRAND_HEADER_GRADIENT } from '@/theme/brand';
+import { cardChrome } from '@/theme/tokens';
 
 function SectionLabel({ eyebrow }: { eyebrow: string }) {
   return (
@@ -91,15 +92,7 @@ function CardGroup({ children }: { children: ReactNode }) {
   return (
     <View
       className="mb-7 overflow-hidden rounded-[24px] bg-surface"
-      style={{
-        borderWidth: 1,
-        borderColor: colors.line,
-        shadowColor: colors.ink,
-        shadowOpacity: 0.05,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 2,
-      }}
+      style={cardChrome(colors)}
     >
       {children}
     </View>

@@ -46,7 +46,7 @@ export const MessageCard = memo(function MessageCard({
   if (!message) return null;
   const user = message.role === 'user';
   const empty = !message.content?.trim();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   return (
     <View className={`flex-row items-end gap-2.5 ${user ? 'justify-end' : 'justify-start'}`}>
@@ -61,7 +61,7 @@ export const MessageCard = memo(function MessageCard({
             backgroundColor: user ? BRAND_BLUE : colors.surface,
             borderWidth: user ? 0 : 1,
             borderColor: colors.line,
-            ...(Platform.OS === 'web'
+            ...(Platform.OS === 'web' || isDark
               ? {}
               : {
                   shadowColor: colors.ink,

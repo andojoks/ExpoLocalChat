@@ -15,7 +15,7 @@ import {
 } from '@/notifications/study-reminders';
 import { BRAND_BLUE, BRAND_HEADER_GRADIENT } from '@/theme/brand';
 import { useTheme } from '@/theme/ThemeProvider';
-import type { ThemePreference } from '@/theme/tokens';
+import { cardChrome, type ThemePreference } from '@/theme/tokens';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 function PrefCard({
@@ -35,15 +35,7 @@ function PrefCard({
   return (
     <View
       className="flex-row items-center gap-3.5 rounded-[24px] bg-surface py-4 pl-4 pr-3.5"
-      style={{
-        borderWidth: 1,
-        borderColor: colors.line,
-        shadowColor: colors.ink,
-        shadowOpacity: 0.05,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 2,
-      }}
+      style={cardChrome(colors)}
     >
       <View
         className="h-11 w-11 items-center justify-center rounded-[14px]"
@@ -99,15 +91,7 @@ function DisplayModeCard() {
   return (
     <View
       className="overflow-hidden rounded-[24px] bg-surface"
-      style={{
-        borderWidth: 1,
-        borderColor: colors.line,
-        shadowColor: colors.ink,
-        shadowOpacity: 0.05,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 2,
-      }}
+      style={cardChrome(colors)}
     >
       {DISPLAY_MODES.map((mode, i) => {
         const on = preference === mode.id;

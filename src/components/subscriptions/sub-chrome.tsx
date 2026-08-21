@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BRAND_BLUE, BRAND_HEADER_GRADIENT } from '@/theme/brand';
 import { useTheme } from '@/theme/ThemeProvider';
+import { cardChrome } from '@/theme/tokens';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 /** Flat brand-blue nav header — matches Preferences / Subscriptions. */
@@ -140,15 +141,7 @@ export function SubCard({
   return (
     <View
       className={`overflow-hidden rounded-[24px] bg-surface ${className}`}
-      style={{
-        borderWidth: 1,
-        borderColor: colors.line,
-        shadowColor: colors.ink,
-        shadowOpacity: 0.05,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 2,
-      }}
+      style={cardChrome(colors)}
     >
       {children}
     </View>

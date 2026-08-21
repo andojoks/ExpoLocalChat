@@ -50,6 +50,9 @@ export type ThemeColors = {
   switchTrackOff: string;
   switchTrackOn: string;
   headerGradient: readonly [string, string, string];
+  /** Android elevation under cards. 0 in dark — light shadows read as a haze. */
+  cardElevation: number;
+  cardShadowOpacity: number;
 };
 
 export const LIGHT_COLORS: ThemeColors = {
@@ -81,6 +84,8 @@ export const LIGHT_COLORS: ThemeColors = {
   switchTrackOff: '#CBD5E1',
   switchTrackOn: '#93C5FD',
   headerGradient: BRAND_HEADER_GRADIENT,
+  cardElevation: 2,
+  cardShadowOpacity: 0.05,
 };
 
 /** Blue-tinted dark surfaces so night mode still reads as ExpertLearner, not generic grey. */
@@ -113,6 +118,8 @@ export const DARK_COLORS: ThemeColors = {
   switchTrackOff: '#334155',
   switchTrackOn: '#1D4ED8',
   headerGradient: BRAND_HEADER_GRADIENT,
+  cardElevation: 0,
+  cardShadowOpacity: 0,
 };
 
 export const THEME_PALETTES: Record<ThemeScheme, ThemeColors> = {
@@ -129,14 +136,15 @@ export const BRAND = {
 
 /** Shared card border + lift so screens stay visually aligned. */
 export function cardChrome(colors: ThemeColors) {
+  const lifted = colors.cardElevation > 0;
   return {
     borderWidth: 1 as const,
     borderColor: colors.line,
     shadowColor: colors.ink,
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    shadowOpacity: lifted ? colors.cardShadowOpacity : 0,
+    shadowRadius: lifted ? 16 : 0,
+    shadowOffset: { width: 0, height: lifted ? 6 : 0 },
+    elevation: colors.cardElevation,
   };
 }
 

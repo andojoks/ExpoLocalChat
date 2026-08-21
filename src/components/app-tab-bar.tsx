@@ -97,12 +97,12 @@ export function useFloatingTabClearance(extra = 16) {
 }
 
 /**
- * Overlay tab dock — content scrolls behind; only the white chip is opaque.
+ * Overlay tab dock — content scrolls behind; only the chip is opaque.
  */
 export function AppTabBar({ state, descriptors, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const bottomInset = floatingTabSafeBottom(insets.bottom);
 
   return (
@@ -120,15 +120,16 @@ export function AppTabBar({ state, descriptors, navigation }: TabBarProps) {
       }}
     >
       {/* Dual shadow wrap: outer casts upward, inner casts down + Android elevation.
-          Outer needs a solid fill — iOS skips shadows on transparent views. */}
+          Outer needs a solid fill — iOS skips shadows on transparent views.
+          Dark mode drops the lift: light shadows read as a haze on the night canvas. */}
       <View
         style={{
           borderRadius: 24,
           backgroundColor: colors.tabBar,
           shadowColor: colors.ink,
-          shadowOpacity: 0.16,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: -5 },
+          shadowOpacity: isDark ? 0 : 0.16,
+          shadowRadius: isDark ? 0 : 14,
+          shadowOffset: { width: 0, height: isDark ? 0 : -5 },
         }}
       >
         <View
@@ -143,10 +144,10 @@ export function AppTabBar({ state, descriptors, navigation }: TabBarProps) {
             borderWidth: 1,
             borderColor: colors.tabBarBorder,
             shadowColor: colors.ink,
-            shadowOpacity: 0.1,
-            shadowRadius: 18,
-            shadowOffset: { width: 0, height: 8 },
-            elevation: 12,
+            shadowOpacity: isDark ? 0 : 0.1,
+            shadowRadius: isDark ? 0 : 18,
+            shadowOffset: { width: 0, height: isDark ? 0 : 8 },
+            elevation: isDark ? 0 : 12,
           }}
         >
           {state.routes.map((route, index) => {
