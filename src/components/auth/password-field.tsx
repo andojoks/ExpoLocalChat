@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { scorePassword, type PasswordStrength } from '@/auth/password-strength';
+import { INPUT_CARET, inputFocusChrome, useInputFocus } from '@/components/ui/input-focus';
 import { useTheme } from '@/theme/ThemeProvider';
 
 type AuthPasswordFieldProps = Omit<TextInputProps, 'secureTextEntry'> & {
@@ -13,10 +14,13 @@ export function AuthPasswordField({
   label,
   showStrength,
   value,
+  onFocus,
+  onBlur,
   ...props
 }: AuthPasswordFieldProps) {
   const [visible, setVisible] = useState(false);
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const focus = useInputFocus({ onFocus, onBlur });
   const strength: PasswordStrength = scorePassword(String(value ?? ''));
 
   return (
@@ -25,22 +29,21 @@ export function AuthPasswordField({
         {label}
       </Text>
       <View
+        collapsable={false}
         className="flex-row items-center"
-        style={{
-          borderWidth: 1,
-          borderColor: colors.line,
-          backgroundColor: colors.surface,
-          borderRadius: 16,
-        }}
+        style={inputFocusChrome(focus.focused, colors, { isDark })}
       >
         <TextInput
+          {...props}
+          {...INPUT_CARET}
           placeholderTextColor={colors.subtle}
           className="flex-1 px-4 py-3.5 text-[15px] text-ink"
           secureTextEntry={!visible}
           value={value}
           autoCapitalize="none"
           autoCorrect={false}
-          {...props}
+          onFocus={focus.onFocus}
+          onBlur={focus.onBlur}
         />
         <Pressable
           onPress={() => setVisible((v) => !v)}

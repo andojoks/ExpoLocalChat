@@ -4,6 +4,7 @@ import type { PackCourse } from '@/subscription/api';
 import { BRAND_BLUE } from '@/theme/brand';
 import { useTheme } from '@/theme/ThemeProvider';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
+import { INPUT_CARET, inputFocusChrome, useInputFocus } from '@/components/ui/input-focus';
 
 export function CourseSearchPicker({
   courses,
@@ -25,7 +26,8 @@ export function CourseSearchPicker({
   lockedIds?: Set<string> | string[];
   disabled?: boolean;
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const searchFocus = useInputFocus();
   const locked = lockedIds instanceof Set ? lockedIds : new Set(lockedIds || []);
   const q = search.trim().toLowerCase();
   const filtered = q
@@ -38,11 +40,18 @@ export function CourseSearchPicker({
 
   return (
     <View>
-      <View className="mb-3 flex-row items-center gap-2 rounded-2xl border border-line bg-surface px-3.5 py-3">
+      <View
+        collapsable={false}
+        className="mb-3 flex-row items-center gap-2 px-3.5 py-3"
+        style={inputFocusChrome(searchFocus.focused, colors, { isDark, radius: 16 })}
+      >
         <Ionicons name="search" size={18} color={colors.subtle} />
         <TextInput
+          {...INPUT_CARET}
           value={search}
           onChangeText={onSearchChange}
+          onFocus={searchFocus.onFocus}
+          onBlur={searchFocus.onBlur}
           placeholder="Search courses…"
           placeholderTextColor={colors.subtle}
           className="flex-1 text-[15px] text-ink"

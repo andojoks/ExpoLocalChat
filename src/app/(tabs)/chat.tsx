@@ -47,6 +47,7 @@ import { WelcomeHero } from '@/components/chat/welcome-hero';
 import { useFloatingTabClearance } from '@/components/app-tab-bar';
 import { BRAND_BLUE, BRAND_HEADER_GRADIENT } from '@/theme/brand';
 import { useTheme } from '@/theme/ThemeProvider';
+import { INPUT_CARET, inputFocusChrome, useInputFocus } from '@/components/ui/input-focus';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 const emptyUsage: ContextUsage = { usedTokens: 0, maxTokens: 2048, percent: 0, full: false };
@@ -56,7 +57,7 @@ const NEAR_BOTTOM_PX = 140;
 const MESSAGE_PAGE = 24;
 
 export default function Chat() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const db = useSQLiteContext();
   const list = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
@@ -66,6 +67,7 @@ export default function Chat() {
   const [contextUsage, setContextUsage] = useState<ContextUsage>(emptyUsage);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [input, setInput] = useState('');
+  const composerFocus = useInputFocus();
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<AgentPhase | null>(null);
   const [streamingText, setStreamingText] = useState('');
@@ -528,17 +530,20 @@ export default function Chat() {
           }}
         >
           <View
+            collapsable={false}
             className="flex-row items-end p-2"
-            style={{
-              borderRadius: 22,
-              borderWidth: 1,
-              borderColor: colors.line,
+            style={inputFocusChrome(composerFocus.focused, colors, {
+              isDark,
+              radius: 22,
               backgroundColor: colors.surfaceMuted,
-            }}
+            })}
           >
             <TextInput
+              {...INPUT_CARET}
               value={input}
               onChangeText={setInput}
+              onFocus={composerFocus.onFocus}
+              onBlur={composerFocus.onBlur}
               multiline
               returnKeyType="send"
               enterKeyHint="send"

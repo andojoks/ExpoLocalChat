@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
+import { INPUT_CARET, inputFocusChrome } from '@/components/ui/input-focus';
 import { useTheme } from '@/theme/ThemeProvider';
 
 export function OtpBoxes({
@@ -12,7 +13,8 @@ export function OtpBoxes({
   length?: number;
 }) {
   const refs = useRef<Array<TextInput | null>>([]);
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const digits = value.padEnd(length, ' ').slice(0, length).split('');
 
   useEffect(() => {
@@ -42,28 +44,37 @@ export function OtpBoxes({
   return (
     <View className="mb-4 flex-row justify-between gap-2">
       {digits.map((d, i) => (
-        <TextInput
+        <View
           key={i}
-          ref={(el) => {
-            refs.current[i] = el;
-          }}
-          keyboardType="number-pad"
-          maxLength={length}
-          value={d.trim()}
-          onChangeText={(t) => setAt(i, t)}
-          onKeyPress={({ nativeEvent }) => {
-            if (nativeEvent.key === 'Backspace' && !digits[i].trim() && i > 0) {
-              refs.current[i - 1]?.focus();
-            }
-          }}
-          className="h-14 flex-1 text-center text-xl font-bold text-ink"
-          style={{
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: colors.line,
-            backgroundColor: colors.surface,
-          }}
-        />
+          collapsable={false}
+          className="h-14 flex-1"
+          style={inputFocusChrome(focusedIndex === i, colors, { isDark })}
+        >
+          <TextInput
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
+            keyboardType="number-pad"
+            maxLength={length}
+            value={d.trim()}
+            onChangeText={(t) => setAt(i, t)}
+            onKeyPress={({ nativeEvent }) => {
+              if (nativeEvent.key === 'Backspace' && !digits[i].trim() && i > 0) {
+                refs.current[i - 1]?.focus();
+              }
+            }}
+            {...INPUT_CARET}
+            onFocus={() => {
+              requestAnimationFrame(() => setFocusedIndex(i));
+            }}
+            onBlur={() => {
+              requestAnimationFrame(() =>
+                setFocusedIndex((cur) => (cur === i ? null : cur)),
+              );
+            }}
+            className="h-full w-full text-center text-xl font-bold text-ink"
+          />
+        </View>
       ))}
     </View>
   );

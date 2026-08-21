@@ -15,6 +15,7 @@ import {
   type CountryDialOption,
 } from '@/auth/phone';
 import { SheetHandle, useSheetBackdrop } from '@/components/ui/sheet';
+import { INPUT_CARET, inputFocusChrome, useInputFocus } from '@/components/ui/input-focus';
 import { BRAND_BLUE } from '@/theme/brand';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -35,12 +36,14 @@ export function PhoneField({
   onNationalChange,
   placeholder = '801 234 5678',
 }: PhoneFieldProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheetModal>(null);
   const numberInputRef = useRef<TextInput>(null);
   const renderBackdrop = useSheetBackdrop();
   const [query, setQuery] = useState('');
+  const numberFocus = useInputFocus();
+  const searchFocus = useInputFocus();
   const snapPoints = useMemo(() => ['78%', '94%'], []);
   const pickerOpenRef = useRef(false);
 
@@ -162,15 +165,8 @@ export function PhoneField({
       </Text>
 
       {/* Combined field: flag picker (left) + national number */}
-      <View
-        className="flex-row items-center overflow-hidden"
-        style={{
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: colors.line,
-          backgroundColor: colors.surface,
-        }}
-      >
+      <View collapsable={false} style={inputFocusChrome(numberFocus.focused, colors, { isDark })}>
+        <View className="flex-row items-center overflow-hidden" style={{ borderRadius: 15 }}>
         <Pressable
           onPress={openPicker}
           accessibilityRole="button"
@@ -196,13 +192,17 @@ export function PhoneField({
         </Pressable>
         <TextInput
           ref={numberInputRef}
+          {...INPUT_CARET}
           placeholderTextColor={colors.subtle}
           className="min-w-0 flex-1 px-3.5 py-3.5 text-[15px] text-ink"
           keyboardType="phone-pad"
           value={nationalNumber}
           onChangeText={onNationalChange}
+          onFocus={numberFocus.onFocus}
+          onBlur={numberFocus.onBlur}
           placeholder={placeholder}
         />
+        </View>
       </View>
 
       <BottomSheetModal
@@ -250,20 +250,19 @@ export function PhoneField({
 
         <View className="px-5 pb-3">
           <View
+            collapsable={false}
             className="flex-row items-center gap-2.5 px-3.5 py-3"
-            style={{
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: colors.line,
-              backgroundColor: colors.surface,
-            }}
+            style={inputFocusChrome(searchFocus.focused, colors, { isDark })}
           >
             <Ionicons name="search" size={18} color={colors.subtle} />
             <BottomSheetTextInput
+              {...INPUT_CARET}
               placeholder="Search country or dial code"
               placeholderTextColor={colors.subtle}
               value={query}
               onChangeText={setQuery}
+              onFocus={searchFocus.onFocus}
+              onBlur={searchFocus.onBlur}
               autoCapitalize="none"
               autoCorrect={false}
               style={{ flex: 1, fontSize: 15, color: colors.ink, padding: 0 }}

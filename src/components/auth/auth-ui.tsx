@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { ExpertLearnerLogo } from '@/components/brand/expert-learner-logo';
 import { GoogleLogo } from '@/components/brand/google-logo';
 import { ButtonLabel, InlineLabel } from '@/components/ui/app-text';
+import { INPUT_CARET, inputFocusChrome, useInputFocus } from '@/components/ui/input-focus';
 import { BRAND_BLUE } from '@/theme/brand';
 import { useTheme } from '@/theme/ThemeProvider';
 import { ThemedStatusBar } from '@/theme/ThemedStatusBar';
@@ -103,9 +104,13 @@ export function AuthScreenShell({
 
 export function AuthField({
   label,
+  onFocus,
+  onBlur,
+  style,
   ...props
 }: TextInputProps & { label: string }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const focus = useInputFocus({ onFocus, onBlur });
   return (
     <View className="mb-3.5">
       <Text
@@ -114,17 +119,17 @@ export function AuthField({
       >
         {label}
       </Text>
-      <TextInput
-        placeholderTextColor={colors.subtle}
-        className="px-4 py-3.5 text-[15px] text-ink"
-        style={{
-          borderWidth: 1,
-          borderColor: colors.line,
-          backgroundColor: colors.surface,
-          borderRadius: 16,
-        }}
-        {...props}
-      />
+      <View collapsable={false} style={inputFocusChrome(focus.focused, colors, { isDark })}>
+        <TextInput
+          {...props}
+          {...INPUT_CARET}
+          placeholderTextColor={colors.subtle}
+          onFocus={focus.onFocus}
+          onBlur={focus.onBlur}
+          className="px-4 py-3.5 text-[15px] text-ink"
+          style={style}
+        />
+      </View>
     </View>
   );
 }
