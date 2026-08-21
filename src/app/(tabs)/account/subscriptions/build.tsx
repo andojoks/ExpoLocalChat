@@ -23,7 +23,6 @@ import {
 } from '@/subscription/cache';
 import { CourseSearchPicker } from '@/components/subscriptions/course-search-picker';
 import {
-  SUB_PAGE_BG,
   SubBanner,
   SubCard,
   SubEyebrow,
@@ -32,10 +31,13 @@ import {
   SubPrimaryButton,
 } from '@/components/subscriptions/sub-chrome';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
+import { BRAND_BLUE } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
 
 type Step = 1 | 2 | 3;
 
 export default function BuildPackScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
   const [categories, setCategories] = useState<BuilderCategory[]>([]);
@@ -163,7 +165,7 @@ export default function BuildPackScreen() {
     step === 1 ? 'Choose category' : step === 2 ? 'Select courses' : 'Confirm pack';
 
   return (
-    <View className="flex-1" style={{ backgroundColor: SUB_PAGE_BG }}>
+    <View className="flex-1 bg-canvas">
       <SubInkHeader
         title="Add pack"
         subtitle={`Step ${step} of 3 · ${stepTitle}`}
@@ -197,13 +199,13 @@ export default function BuildPackScreen() {
             {step === 1 ? (
               <View>
                 <SubEyebrow>Category</SubEyebrow>
-                <Text className="mb-4 text-[14px] leading-5 text-slate-500">
+                <Text className="mb-4 text-[14px] leading-5 text-muted">
                   Pick the exam category for your new pack. You can have one pack per category.
                 </Text>
                 {available.length === 0 ? (
                   <SubCard>
                     <View className="px-5 py-6">
-                      <Text className="text-center text-[14px] text-slate-500">
+                      <Text className="text-center text-[14px] text-muted">
                         You already have a pack for every available category.
                       </Text>
                     </View>
@@ -226,20 +228,20 @@ export default function BuildPackScreen() {
                             <View
                               className="flex-row items-center gap-3 px-4 py-4"
                               style={{
-                                backgroundColor: on ? '#F8FBFF' : '#FFFFFF',
+                                backgroundColor: on ? colors.selectedBg : colors.surface,
                               }}
                             >
                               <View
                                 className="h-11 w-11 items-center justify-center rounded-[14px]"
                                 style={{
-                                  backgroundColor: on ? '#EFF6FF' : '#F1F5F9',
+                                  backgroundColor: on ? colors.iconBg : colors.surfaceMuted,
                                   borderWidth: 1,
-                                  borderColor: on ? '#BFDBFE' : '#E8EEF4',
+                                  borderColor: on ? colors.selectedBorder : colors.line,
                                 }}
                               >
                                 <Text
                                   className="text-[12px] font-black"
-                                  style={{ color: on ? '#0548E8' : '#64748B' }}
+                                  style={{ color: on ? BRAND_BLUE : colors.muted }}
                                 >
                                   {c.code.slice(0, 2).toUpperCase()}
                                 </Text>
@@ -253,7 +255,7 @@ export default function BuildPackScreen() {
                                   {c.name}
                                 </Text>
                                 <Text
-                                  className="mt-0.5 text-[12px] text-slate-500"
+                                  className="mt-0.5 text-[12px] text-muted"
                                   numberOfLines={1}
                                   style={LABEL_TEXT_ANDROID}
                                 >
@@ -294,11 +296,11 @@ export default function BuildPackScreen() {
                 <SubEyebrow>Review</SubEyebrow>
                 <SubCard className="mb-4">
                   <View className="px-4 py-4">
-                    <Text className="text-[11px] font-semibold uppercase text-[#94A3B8]" style={{ letterSpacing: 1.5 }}>
+                    <Text className="text-[11px] font-semibold uppercase text-subtle" style={{ letterSpacing: 1.5 }}>
                       Category
                     </Text>
                     <Text className="mt-1 text-[16px] font-bold text-ink">{category.name}</Text>
-                    <Text className="mt-0.5 text-[12px] text-slate-500">{category.code}</Text>
+                    <Text className="mt-0.5 text-[12px] text-muted">{category.code}</Text>
                   </View>
                 </SubCard>
                 <SubEyebrow>{`Courses (${selectedCourses.length})`}</SubEyebrow>
@@ -306,12 +308,12 @@ export default function BuildPackScreen() {
                   {selectedCourses.map((c) => (
                     <SubCard key={c.id}>
                       <View className="flex-row items-center gap-3 px-4 py-3.5">
-                        <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-[#EFF6FF]">
+                        <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-icon-bg">
                           <Ionicons name="book-outline" size={18} color="#0548E8" />
                         </View>
                         <View className="min-w-0 flex-1">
                           <Text className="text-[15px] font-semibold text-ink">{c.name}</Text>
-                          <Text className="mt-0.5 text-[12px] text-slate-500">{c.code}</Text>
+                          <Text className="mt-0.5 text-[12px] text-muted">{c.code}</Text>
                         </View>
                       </View>
                     </SubCard>

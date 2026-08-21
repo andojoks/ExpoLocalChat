@@ -6,11 +6,10 @@ import {
   BottomSheetHandle,
   type BottomSheetHandleProps,
 } from '@gorhom/bottom-sheet';
-
-export const SHEET_BG = '#F8FAFC';
-export const SHEET_HANDLE = '#CBD5E1';
+import { useTheme } from '@/theme/ThemeProvider';
 
 export function SheetBackdrop(props: BottomSheetBackdropProps) {
+  const { colors } = useTheme();
   return (
     <BottomSheetBackdrop
       {...props}
@@ -18,6 +17,7 @@ export function SheetBackdrop(props: BottomSheetBackdropProps) {
       appearsOnIndex={0}
       opacity={0.45}
       pressBehavior="close"
+      style={[{ backgroundColor: colors.overlay }]}
     />
   );
 }
@@ -30,11 +30,12 @@ export function useSheetBackdrop() {
 }
 
 export function SheetHandle(props: BottomSheetHandleProps) {
+  const { colors } = useTheme();
   return (
     <BottomSheetHandle
       {...props}
       style={styles.handleWrap}
-      indicatorStyle={styles.handle}
+      indicatorStyle={[styles.handle, { backgroundColor: colors.sheetHandle }]}
     />
   );
 }
@@ -45,7 +46,6 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   handle: {
-    backgroundColor: SHEET_HANDLE,
     width: 40,
     height: 5,
     borderRadius: 999,

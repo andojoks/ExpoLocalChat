@@ -122,7 +122,7 @@ export default function HomeScreen() {
   );
 
   return (
-    <View className="flex-1 bg-[#E8EEF5]">
+    <View className="flex-1 bg-canvas">
       <StatusBar style="light" />
       {loading && packs.length === 0 && !streak ? (
         <View className="flex-1 items-center justify-center bg-[#0548E8]">
@@ -157,7 +157,7 @@ export default function HomeScreen() {
               />
             }
           >
-            <View className="bg-[#E8EEF5] px-5 pt-6">
+            <View className="bg-canvas px-5 pt-6">
               <HomeStreakSection streak={streak} />
 
               <HomeRecentSection

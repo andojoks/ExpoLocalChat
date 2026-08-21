@@ -1,14 +1,15 @@
 import { Stack } from 'expo-router';
-import { SUB_PAGE_BG } from '@/components/subscriptions/sub-chrome';
+import { useTheme } from '@/theme/ThemeProvider';
 
 /** Nested stack; screens use SubInkHeader (edge-to-edge). */
 export default function PackYearLayout() {
+  const { colors } = useTheme();
   return (
     <Stack
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
-        contentStyle: { backgroundColor: SUB_PAGE_BG },
+        contentStyle: { backgroundColor: colors.canvas },
       }}
     >
       <Stack.Screen name="index" />

@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/auth/AuthProvider';
+import { useTheme } from '@/theme/ThemeProvider';
 import {
   getAboutUrl,
   getPrivacyUrl,
@@ -22,12 +23,12 @@ import {
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useFloatingTabClearance } from '@/components/app-tab-bar';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
-import { BRAND_BLUE, BRAND_HEADER_GRADIENT, BRAND_MIST } from '@/theme/brand';
+import { BRAND_BLUE, BRAND_HEADER_GRADIENT } from '@/theme/brand';
 
 function SectionLabel({ eyebrow }: { eyebrow: string }) {
   return (
     <View className="mb-3 px-0.5">
-      <Text className="text-[11px] font-semibold uppercase text-[#94A3B8]" style={{ letterSpacing: 2.0 }}>
+      <Text className="text-[11px] font-semibold uppercase text-subtle" style={{ letterSpacing: 2.0 }}>
         {eyebrow}
       </Text>
     </View>
@@ -47,39 +48,38 @@ function AccountRow({
   destructive?: boolean;
   last?: boolean;
 }) {
+  const { colors } = useTheme();
   return (
     <Pressable
       onPress={onPress}
       className={`flex-row items-center gap-3.5 px-4 py-3.5 ${
-        last ? '' : 'border-b border-[#E8EEF4]'
+        last ? '' : 'border-b border-line'
       }`}
     >
       <View
         className="h-10 w-10 items-center justify-center rounded-[14px]"
         style={{
-          backgroundColor: destructive ? '#FEF2F2' : '#EFF6FF',
+          backgroundColor: destructive ? colors.dangerBg : colors.iconBg,
         }}
       >
         <Ionicons
           name={icon}
           size={18}
-          color={destructive ? '#B4534B' : BRAND_BLUE}
+          color={destructive ? colors.danger : BRAND_BLUE}
         />
       </View>
       <Text
         numberOfLines={1}
-        className={`min-w-0 flex-1 text-[15px] font-semibold ${
-          destructive ? 'text-[#B4534B]' : 'text-ink'
-        }`}
-        style={{ flexShrink: 1 }}
+        className="min-w-0 flex-1 text-[15px] font-semibold"
+        style={{ flexShrink: 1, color: destructive ? colors.danger : colors.ink }}
       >
         {label}
       </Text>
-      <View className="h-8 w-8 items-center justify-center rounded-full bg-[#F1F5F9]">
+      <View className="h-8 w-8 items-center justify-center rounded-full bg-surface-muted">
         <Ionicons
           name="chevron-forward"
           size={15}
-          color={destructive ? '#B4534B' : '#94A3B8'}
+          color={destructive ? colors.danger : colors.subtle}
         />
       </View>
     </Pressable>
@@ -87,13 +87,14 @@ function AccountRow({
 }
 
 function CardGroup({ children }: { children: ReactNode }) {
+  const { colors } = useTheme();
   return (
     <View
-      className="mb-7 overflow-hidden rounded-[24px] bg-white"
+      className="mb-7 overflow-hidden rounded-[24px] bg-surface"
       style={{
         borderWidth: 1,
-        borderColor: '#E8EEF4',
-        shadowColor: '#0B1424',
+        borderColor: colors.line,
+        shadowColor: colors.ink,
         shadowOpacity: 0.05,
         shadowRadius: 16,
         shadowOffset: { width: 0, height: 6 },
@@ -133,7 +134,7 @@ export default function AccountScreen() {
   const hasName = Boolean(user?.name?.trim());
 
   return (
-    <View className="flex-1" style={{ backgroundColor: BRAND_MIST }}>
+    <View className="flex-1 bg-canvas">
       <StatusBar style="light" />
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: tabClearance }}>
         <View
@@ -219,7 +220,7 @@ export default function AccountScreen() {
           </LinearGradient>
         </View>
 
-        <View className="px-5 pt-6" style={{ backgroundColor: BRAND_MIST }}>
+        <View className="px-5 pt-6 bg-canvas">
           <SectionLabel eyebrow="Settings" />
           <CardGroup>
             <AccountRow

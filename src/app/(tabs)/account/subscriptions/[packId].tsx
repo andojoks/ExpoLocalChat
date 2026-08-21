@@ -43,7 +43,6 @@ import {
   validateRequiredPhone,
 } from '@/auth/phone';
 import {
-  SUB_PAGE_BG,
   SubBanner,
   SubCard,
   SubEyebrow,
@@ -52,11 +51,14 @@ import {
   SubPrimaryButton,
 } from '@/components/subscriptions/sub-chrome';
 import { StudySwipeArea } from '@/study/study-swipe-area';
+import { BRAND_BLUE } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
 
 type DetailTab = 'courses' | 'subscription';
 const DETAIL_TABS: DetailTab[] = ['courses', 'subscription'];
 
 export default function PackDetailScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -323,7 +325,7 @@ export default function PackDetailScreen() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: SUB_PAGE_BG }}>
+    <View className="flex-1 bg-canvas">
       <SubInkHeader
         title={pack?.category.name || 'Pack details'}
         subtitle={
@@ -365,11 +367,11 @@ export default function PackDetailScreen() {
       >
       {loading && !pack ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#0548E8" />
+          <ActivityIndicator color={BRAND_BLUE} />
         </View>
       ) : !pack || !category ? (
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center text-sm text-slate-500">
+          <Text className="text-center text-sm text-muted">
             Pack not found. Connect once to sync.
           </Text>
         </View>
@@ -386,19 +388,19 @@ export default function PackDetailScreen() {
                   setRefreshing(true);
                   void load({ refresh: true });
                 }}
-                tintColor="#0548E8"
+                tintColor={BRAND_BLUE}
               />
             }
           >
             {active ? (
               <SubCard className="mb-4">
                 <View className="flex-row items-start gap-3 px-4 py-4">
-                  <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-[#EFF6FF]">
-                    <Ionicons name="lock-closed-outline" size={18} color="#0548E8" />
+                  <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-icon-bg">
+                    <Ionicons name="lock-closed-outline" size={18} color={BRAND_BLUE} />
                   </View>
                   <View className="min-w-0 flex-1">
                     <Text className="text-[15px] font-bold text-ink">Courses locked</Text>
-                    <Text className="mt-1 text-[13px] leading-5 text-slate-500">
+                    <Text className="mt-1 text-[13px] leading-5 text-muted">
                       Your subscription is active. You can add courses now; removing courses unlocks
                       when it expires
                       {pack.activeSubscription?.expiresAt
@@ -444,24 +446,24 @@ export default function PackDetailScreen() {
                 setRefreshing(true);
                 void load({ refresh: true });
               }}
-              tintColor="#0548E8"
+              tintColor={BRAND_BLUE}
             />
           }
         >
           {active && pack.activeSubscription ? (
             <SubCard className="mb-5">
-              <View className="flex-row items-center gap-3 border-b border-[#E8EEF4] bg-[#F8FBFF] px-4 py-4">
-                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#0548E8]">
+              <View className="flex-row items-center gap-3 border-b border-line bg-selected px-4 py-4">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl" style={{ backgroundColor: BRAND_BLUE }}>
                   <Ionicons name="shield-checkmark" size={20} color="#FFFFFF" />
                 </View>
                 <View className="min-w-0 flex-1">
-                  <Text className="text-[11px] font-bold uppercase text-[#0548E8]" style={{ letterSpacing: 1.5 }}>
+                  <Text className="text-[11px] font-bold uppercase" style={{ letterSpacing: 1.5, color: BRAND_BLUE }}>
                     Subscription
                   </Text>
                   <Text className="mt-0.5 text-base font-black tracking-tight text-ink">Active</Text>
                 </View>
-                <View className="items-end rounded-xl bg-white px-3 py-2">
-                  <Text className="text-lg font-black text-[#0B1424]">
+                <View className="items-end rounded-xl bg-surface px-3 py-2">
+                  <Text className="text-lg font-black text-ink">
                     {(() => {
                       const d = daysLeftUntil(pack.activeSubscription.expiresAt);
                       if (d === null) return '—';
@@ -469,23 +471,23 @@ export default function PackDetailScreen() {
                       return `${d}d`;
                     })()}
                   </Text>
-                  <Text className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  <Text className="text-[10px] font-semibold uppercase tracking-wide text-subtle">
                     remaining
                   </Text>
                 </View>
               </View>
               <View className="gap-2.5 px-4 py-4">
                 <View className="flex-row items-center gap-2">
-                  <Ionicons name="calendar-outline" size={16} color="#64748B" />
-                  <Text className="text-[13px] text-slate-600">
+                  <Ionicons name="calendar-outline" size={16} color={colors.muted} />
+                  <Text className="text-[13px] text-muted">
                     {formatDateDmY(pack.activeSubscription.startsAt)}
                     {'  →  '}
                     {formatDateDmY(pack.activeSubscription.expiresAt)}
                   </Text>
                 </View>
                 <View className="flex-row items-center gap-2">
-                  <Ionicons name="library-outline" size={16} color="#64748B" />
-                  <Text className="min-w-0 flex-1 text-[13px] text-slate-600" numberOfLines={1}>
+                  <Ionicons name="library-outline" size={16} color={colors.muted} />
+                  <Text className="min-w-0 flex-1 text-[13px] text-muted" numberOfLines={1}>
                     {pack.courses.length} course{pack.courses.length === 1 ? '' : 's'} ·{' '}
                     {pack.category.name}
                   </Text>
@@ -494,14 +496,14 @@ export default function PackDetailScreen() {
             </SubCard>
           ) : (
             <SubCard className="mb-5">
-              <View className="border-b border-[#E8EEF4] px-4 py-4">
-                <Text className="text-[11px] font-bold uppercase text-[#94A3B8]" style={{ letterSpacing: 1.5 }}>
+              <View className="border-b border-line px-4 py-4">
+                <Text className="text-[11px] font-bold uppercase text-subtle" style={{ letterSpacing: 1.5 }}>
                   Activate access
                 </Text>
                 <Text className="mt-1 text-base font-black tracking-tight text-ink">
                   Pay for 30 days
                 </Text>
-                <Text className="mt-1 text-[13px] text-slate-500">
+                <Text className="mt-1 text-[13px] text-muted">
                   Amount:{' '}
                   <Text className="font-bold text-ink">
                     {category.sku ? `${(category.sku.priceCents / 100).toFixed(0)}` : '—'}
@@ -509,7 +511,7 @@ export default function PackDetailScreen() {
                 </Text>
               </View>
               <View className="px-4 py-4">
-                <Text className="mb-2 text-[11px] font-semibold uppercase text-[#94A3B8]" style={{ letterSpacing: 1.3 }}>
+                <Text className="mb-2 text-[11px] font-semibold uppercase text-subtle" style={{ letterSpacing: 1.3 }}>
                   Payment method
                 </Text>
                 {(
@@ -523,8 +525,8 @@ export default function PackDetailScreen() {
                     onPress={() => setProvider(m.id)}
                     className="mb-2.5 flex-row items-center justify-between rounded-2xl border px-4 py-3.5"
                     style={{
-                      borderColor: provider === m.id ? '#BFDBFE' : '#E8EEF4',
-                      backgroundColor: provider === m.id ? '#F8FBFF' : '#F8FAFC',
+                      borderColor: provider === m.id ? colors.selectedBorder : colors.line,
+                      backgroundColor: provider === m.id ? colors.selectedBg : colors.sheetBg,
                     }}
                   >
                     <Text
@@ -537,7 +539,7 @@ export default function PackDetailScreen() {
                     <Ionicons
                       name={provider === m.id ? 'radio-button-on' : 'radio-button-off'}
                       size={20}
-                      color="#0548E8"
+                      color={BRAND_BLUE}
                     />
                   </Pressable>
                 ))}
@@ -553,7 +555,7 @@ export default function PackDetailScreen() {
                   onNationalChange={setPhoneNational}
                   placeholder={phoneCountry === 'CM' ? '6XX XXX XXX' : 'Phone number'}
                 />
-                <Text className="mb-3 -mt-1.5 text-[12px] leading-4 text-slate-400">
+                <Text className="mb-3 -mt-1.5 text-[12px] leading-4 text-subtle">
                   {provider === 'MTN_MOMO'
                     ? 'Use the MTN number that will approve this MoMo charge.'
                     : 'Use the Orange number that will approve this MoMo charge.'}
@@ -573,7 +575,7 @@ export default function PackDetailScreen() {
 
           <SubEyebrow>Subscription history</SubEyebrow>
           {historyRows.length === 0 ? (
-            <Text className="mb-4 text-sm text-slate-500">No subscriptions for this pack yet.</Text>
+            <Text className="mb-4 text-sm text-muted">No subscriptions for this pack yet.</Text>
           ) : (
             <View className="gap-3">
               {historyRows.map((s) => {
@@ -589,11 +591,11 @@ export default function PackDetailScreen() {
                     <View className="px-4 py-4">
                       <View className="flex-row items-center justify-between">
                         <Text className="font-bold text-ink">{s.status}</Text>
-                        <Text className="text-xs text-slate-500">
+                        <Text className="text-xs text-muted">
                           {formatDateDmY(s.createdAt)}
                         </Text>
                       </View>
-                      <Text className="mt-1 text-sm text-slate-600">
+                      <Text className="mt-1 text-sm text-muted">
                         {formatDateDmY(s.startsAt)}
                         {s.expiresAt ? ` → ${formatDateDmY(s.expiresAt)}` : ''}
                         {s.status === 'ACTIVE' && s.expiresAt
@@ -601,8 +603,8 @@ export default function PackDetailScreen() {
                           : ''}
                       </Text>
 
-                      <View className="mt-3 rounded-2xl border border-[#E8EEF4] bg-[#F8FAFC] px-3 py-2.5">
-                        <Text className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      <View className="mt-3 rounded-2xl border border-line bg-surface-muted px-3 py-2.5">
+                        <Text className="text-[10px] font-semibold uppercase tracking-wide text-subtle">
                           Payment
                         </Text>
                         {pay ? (
@@ -613,27 +615,27 @@ export default function PackDetailScreen() {
                               </Text>
                               <Text
                                 className={`text-xs font-semibold ${
-                                  pay.status === 'SUCCESS' ? 'text-forest' : 'text-slate-400'
+                                  pay.status === 'SUCCESS' ? 'text-forest' : 'text-subtle'
                                 }`}
                               >
                                 {pay.status}
                               </Text>
                             </View>
-                            <Text className="mt-0.5 text-xs text-slate-500">
+                            <Text className="mt-0.5 text-xs text-muted">
                               {(pay.amountCents / 100).toFixed(0)}
                               {pay.phone ? ` · ${pay.phone}` : ''}
                               {' · '}
                               {formatDateDmY(pay.completedAt || pay.createdAt)}
                             </Text>
                             <Text
-                              className="mt-0.5 font-mono text-[10px] text-slate-400"
+                              className="mt-0.5 font-mono text-[10px] text-subtle"
                               numberOfLines={1}
                             >
                               {pay.externalRef}
                             </Text>
                           </>
                         ) : (
-                          <Text className="mt-1 text-sm text-slate-400">No payment record</Text>
+                          <Text className="mt-1 text-sm text-subtle">No payment record</Text>
                         )}
                       </View>
                     </View>

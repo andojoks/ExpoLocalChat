@@ -2,11 +2,10 @@ import { memo, useMemo } from 'react';
 import { Platform, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { normalizeLatexDelimiters } from '@/study/normalize-latex-delimiters';
+import { useTheme } from '@/theme/ThemeProvider';
+import { BRAND_BLUE } from '@/theme/brand';
 
-/** Chat chrome is always light; do not follow OS dark mode (that made assistant text near-white on white bubbles). */
-const INK = '#0B1424';
 const INK_ON_FOREST = '#FFFFFF';
-const ACCENT = '#0548E8';
 
 const webTextSharp =
   Platform.OS === 'web'
@@ -21,7 +20,9 @@ export const RichMarkdown = memo(
     children: string;
     inverted?: boolean;
   }) {
-    const color = inverted ? INK_ON_FOREST : INK;
+    const { colors } = useTheme();
+    const color = inverted ? INK_ON_FOREST : colors.ink;
+    const accent = inverted ? '#D8FFE8' : BRAND_BLUE;
     const style = useMemo(
       () => ({
         body: {
@@ -48,7 +49,7 @@ export const RichMarkdown = memo(
           lineHeight: 24,
         },
         heading3: {
-          color: inverted ? INK_ON_FOREST : ACCENT,
+          color: inverted ? INK_ON_FOREST : BRAND_BLUE,
           fontSize: 16,
           fontWeight: '700' as const,
           marginTop: 8,
@@ -64,7 +65,7 @@ export const RichMarkdown = memo(
         },
         strong: { fontWeight: '700' as const, color },
         em: { fontStyle: 'italic' as const, color },
-        link: { color: inverted ? '#D8FFE8' : ACCENT, textDecorationLine: 'underline' as const },
+        link: { color: accent, textDecorationLine: 'underline' as const },
         bullet_list: { marginTop: 4, marginBottom: 8 },
         ordered_list: { marginTop: 4, marginBottom: 8 },
         list_item: {
@@ -87,7 +88,6 @@ export const RichMarkdown = memo(
           fontSize: 15,
           lineHeight: 23,
         },
-        // Nested paragraphs inside list items must not add huge gaps.
         bullet_list_content: { flex: 1, flexShrink: 1 },
         ordered_list_content: { flex: 1, flexShrink: 1 },
         paragraph: {
@@ -106,14 +106,14 @@ export const RichMarkdown = memo(
             android: 'monospace',
             default: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
           }),
-          color: inverted ? '#FFF4D8' : ACCENT,
-          backgroundColor: inverted ? 'rgba(255,255,255,0.14)' : '#DBEAFE',
+          color: inverted ? '#FFF4D8' : BRAND_BLUE,
+          backgroundColor: inverted ? 'rgba(255,255,255,0.14)' : colors.iconBg,
           borderRadius: 5,
           paddingHorizontal: 4,
           fontSize: 13,
         },
         fence: {
-          backgroundColor: inverted ? 'rgba(255,255,255,0.12)' : '#F1F5F9',
+          backgroundColor: inverted ? 'rgba(255,255,255,0.12)' : colors.surfaceMuted,
           color,
           padding: 10,
           borderRadius: 10,
@@ -121,27 +121,27 @@ export const RichMarkdown = memo(
           fontSize: 13,
         },
         code_block: {
-          backgroundColor: inverted ? 'rgba(255,255,255,0.12)' : '#F1F5F9',
+          backgroundColor: inverted ? 'rgba(255,255,255,0.12)' : colors.surfaceMuted,
           color,
           padding: 10,
           borderRadius: 10,
           fontSize: 13,
         },
         blockquote: {
-          backgroundColor: inverted ? 'rgba(255,255,255,0.08)' : '#F8FAFC',
-          borderLeftColor: ACCENT,
+          backgroundColor: inverted ? 'rgba(255,255,255,0.08)' : colors.sheetBg,
+          borderLeftColor: BRAND_BLUE,
           borderLeftWidth: 3,
           paddingHorizontal: 10,
           paddingVertical: 6,
           marginVertical: 6,
         },
         hr: {
-          backgroundColor: inverted ? 'rgba(255,255,255,0.25)' : '#E2E8F0',
+          backgroundColor: inverted ? 'rgba(255,255,255,0.25)' : colors.line,
           height: 1,
           marginVertical: 10,
         },
       }),
-      [color, inverted],
+      [color, inverted, accent, colors],
     );
     const text = useMemo(() => normalizeChatMarkdown(String(children || '')), [children]);
     return (
@@ -150,7 +150,6 @@ export const RichMarkdown = memo(
       </View>
     );
   },
-  (prev, next) => prev.children === next.children && prev.inverted === next.inverted,
 );
 
 /** Keep tutor replies parseable: latex → plain, ensure blank lines before headings. */

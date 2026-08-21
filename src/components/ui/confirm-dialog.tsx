@@ -6,7 +6,9 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { SHEET_BG, SheetHandle, useSheetBackdrop } from '@/components/ui/sheet';
+import { SheetHandle, useSheetBackdrop } from '@/components/ui/sheet';
+import { useTheme } from '@/theme/ThemeProvider';
+import { BRAND_BLUE } from '@/theme/brand';
 
 export type ConfirmDialogProps = {
   visible: boolean;
@@ -42,6 +44,7 @@ export function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const ref = useRef<BottomSheetModal>(null);
   const renderBackdrop = useSheetBackdrop();
 
@@ -102,7 +105,7 @@ export function ConfirmDialog({
       backdropComponent={renderBackdrop}
       handleComponent={SheetHandle}
       backgroundStyle={{
-        backgroundColor: SHEET_BG,
+        backgroundColor: colors.sheetBg,
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
       }}
@@ -117,19 +120,19 @@ export function ConfirmDialog({
           <View
             className="mb-3 h-14 w-14 items-center justify-center rounded-2xl"
             style={{
-              backgroundColor: destructive ? '#FEF2F2' : '#EFF6FF',
+              backgroundColor: destructive ? colors.dangerBg : colors.iconBg,
             }}
           >
             <Ionicons
               name={resolvedIcon}
               size={26}
-              color={destructive ? '#B4534B' : '#0548E8'}
+              color={destructive ? colors.danger : BRAND_BLUE}
             />
           </View>
           <Text className="text-center text-[20px] font-black tracking-tight text-ink">
             {title}
           </Text>
-          <Text className="mt-2 text-center text-[14px] leading-6 text-slate-500">
+          <Text className="mt-2 text-center text-[14px] leading-6 text-muted">
             {message}
           </Text>
         </View>
@@ -150,7 +153,7 @@ export function ConfirmDialog({
           </Pressable>
           <Pressable
             onPress={() => requestClose('cancel')}
-            className="rounded-2xl border border-[#E8EEF4] bg-white py-4"
+            className="rounded-2xl border border-line bg-surface py-4"
           >
             <Text
               numberOfLines={1}

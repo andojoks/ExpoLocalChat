@@ -15,7 +15,7 @@ export function ThinkingIndicator({ phase }: { phase?: AgentPhase | null }) {
     <View>
       <TypingDots />
       {!!phase && (
-        <Text className="mt-2 text-[11px] font-medium text-slate-500">{PHASE_LABEL[phase]}</Text>
+        <Text className="mt-2 text-[11px] font-medium text-muted">{PHASE_LABEL[phase]}</Text>
       )}
     </View>
   );

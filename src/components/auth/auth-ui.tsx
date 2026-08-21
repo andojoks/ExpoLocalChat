@@ -7,23 +7,15 @@ import {
   View,
   type TextInputProps,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ExpertLearnerLogo } from '@/components/brand/expert-learner-logo';
 import { GoogleLogo } from '@/components/brand/google-logo';
 import { ButtonLabel, InlineLabel } from '@/components/ui/app-text';
-import { BRAND_BLUE, BRAND_MIST } from '@/theme/brand';
-
-const APP_BG = BRAND_MIST;
-
-const FIELD_SURFACE = {
-  borderWidth: 1,
-  borderColor: '#E8EEF4',
-  backgroundColor: '#FFFFFF',
-  borderRadius: 16,
-} as const;
+import { BRAND_BLUE } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
+import { ThemedStatusBar } from '@/theme/ThemedStatusBar';
 
 export function AuthScreenShell({
   children,
@@ -40,31 +32,33 @@ export function AuthScreenShell({
 }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
 
   return (
     <View
       className="flex-1"
       style={{
-        backgroundColor: APP_BG,
+        backgroundColor: colors.canvas,
         paddingTop: insets.top + 8,
         paddingBottom: Math.max(insets.bottom, 12),
       }}
     >
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
 
       {showBack ? (
         <Pressable
           onPress={() => router.back()}
           hitSlop={12}
-          className="absolute z-20 h-10 w-10 items-center justify-center rounded-full bg-white"
+          className="absolute z-20 h-10 w-10 items-center justify-center rounded-full bg-surface"
           style={{
             top: insets.top + 8,
             left: 16,
             borderWidth: 1,
-            borderColor: '#E8EEF4',
+            borderColor: colors.line,
+            backgroundColor: colors.surface,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color="#0B1424" />
+          <Ionicons name="arrow-back" size={20} color={colors.ink} />
         </Pressable>
       ) : null}
 
@@ -81,9 +75,9 @@ export function AuthScreenShell({
         }}
       >
         <View className="items-center justify-center px-2 pb-6">
-          <ExpertLearnerLogo size={72} variant="onLight" />
+          <ExpertLearnerLogo size={72} variant={isDark ? 'onBlue' : 'onLight'} />
           <Text
-            className="mt-6 text-center text-[11px] font-semibold uppercase text-[#64748B]"
+            className="mt-6 text-center text-[11px] font-semibold uppercase text-muted"
             style={{ letterSpacing: 2.4 }}
           >
             {eyebrow}
@@ -95,7 +89,7 @@ export function AuthScreenShell({
             {title}
           </Text>
           {subtitle ? (
-            <Text className="mt-3 max-w-sm text-center text-[14px] leading-5 text-[#64748B]">
+            <Text className="mt-3 max-w-sm text-center text-[14px] leading-5 text-muted">
               {subtitle}
             </Text>
           ) : null}
@@ -111,18 +105,24 @@ export function AuthField({
   label,
   ...props
 }: TextInputProps & { label: string }) {
+  const { colors } = useTheme();
   return (
     <View className="mb-3.5">
       <Text
-        className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase text-[#94A3B8]"
+        className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase text-subtle"
         style={{ letterSpacing: 1.5 }}
       >
         {label}
       </Text>
       <TextInput
-        placeholderTextColor="#94A3B8"
+        placeholderTextColor={colors.subtle}
         className="px-4 py-3.5 text-[15px] text-ink"
-        style={FIELD_SURFACE}
+        style={{
+          borderWidth: 1,
+          borderColor: colors.line,
+          backgroundColor: colors.surface,
+          borderRadius: 16,
+        }}
         {...props}
       />
     </View>
@@ -162,9 +162,9 @@ export function AuthSecondaryButton({
   label: string;
   onPress: () => void;
   icon?: keyof typeof Ionicons.glyphMap | 'google';
-  /** Ghost style for ink / dark surfaces (e.g. welcome). */
   light?: boolean;
 }) {
+  const { colors } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -179,16 +179,16 @@ export function AuthSecondaryButton({
             }
           : {
               borderRadius: 16,
-              backgroundColor: '#FFFFFF',
+              backgroundColor: colors.surface,
               borderWidth: 1,
-              borderColor: '#E8EEF4',
+              borderColor: colors.line,
             }
       }
     >
       {icon === 'google' ? (
         <GoogleLogo size={18} />
       ) : icon ? (
-        <Ionicons name={icon} size={18} color={light ? '#F8FAFC' : '#0B1424'} />
+        <Ionicons name={icon} size={18} color={light ? '#F8FAFC' : colors.ink} />
       ) : null}
       {icon ? (
         <InlineLabel
@@ -208,6 +208,7 @@ export function AuthSecondaryButton({
 }
 
 export function AuthError({ message }: { message: string | null }) {
+  const { colors } = useTheme();
   if (!message) return null;
   return (
     <View
@@ -215,11 +216,11 @@ export function AuthError({ message }: { message: string | null }) {
       style={{
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#FECACA',
-        backgroundColor: '#FEF2F2',
+        borderColor: colors.danger,
+        backgroundColor: colors.dangerBg,
       }}
     >
-      <Text className="text-sm text-[#B91C1C]">{message}</Text>
+      <Text className="text-sm" style={{ color: colors.danger }}>{message}</Text>
     </View>
   );
 }

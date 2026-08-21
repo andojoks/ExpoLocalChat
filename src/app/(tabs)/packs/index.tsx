@@ -19,8 +19,9 @@ import { useCourseInstallActive } from '@/packs/use-pack-install-jobs';
 import { listMyPacks, type LearnerPackSummary } from '@/subscription/api';
 import { cacheGetPacks, cacheSetPacks } from '@/subscription/cache';
 import { useFloatingTabClearance } from '@/components/app-tab-bar';
+import { useTheme } from '@/theme/ThemeProvider';
+import { BRAND_BLUE } from '@/theme/brand';
 import {
-  SUB_PAGE_BG,
   SubBanner,
   SubCard,
   SubInkHeader,
@@ -44,27 +45,28 @@ function CatalogCourseRow({
   idx: number;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   const installing = useCourseInstallActive(course.categoryCode, course.subjectCode);
 
   return (
     <Pressable
       onPress={onPress}
       className={`flex-row items-center gap-3.5 px-4 py-3.5 ${
-        idx > 0 ? 'border-t border-[#E8EEF4]' : ''
+        idx > 0 ? 'border-t border-line' : ''
       }`}
     >
-      <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-[#EFF6FF]">
+      <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-icon-bg">
         {installing ? (
-          <ActivityIndicator size="small" color="#0548E8" />
+          <ActivityIndicator size="small" color={BRAND_BLUE} />
         ) : (
-          <Ionicons name="book-outline" size={18} color="#0548E8" />
+          <Ionicons name="book-outline" size={18} color={BRAND_BLUE} />
         )}
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[15px] font-bold text-ink" numberOfLines={1}>
           {course.subjectName}
         </Text>
-        <Text className="mt-0.5 text-[12px] text-slate-500">
+        <Text className="mt-0.5 text-[12px] text-muted">
           {installing
             ? 'Downloading packs…'
             : `${course.packCount} pack${course.packCount === 1 ? '' : 's'}${
@@ -74,8 +76,8 @@ function CatalogCourseRow({
               }`}
         </Text>
       </View>
-      <View className="h-8 w-8 items-center justify-center rounded-full bg-[#F1F5F9]">
-        <Ionicons name="chevron-forward" size={15} color="#94A3B8" />
+      <View className="h-8 w-8 items-center justify-center rounded-full bg-surface-muted">
+        <Ionicons name="chevron-forward" size={15} color={colors.subtle} />
       </View>
     </Pressable>
   );
@@ -249,7 +251,7 @@ export default function PacksCatalogScreen() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: SUB_PAGE_BG }}>
+    <View className="flex-1 bg-canvas">
       <SubInkHeader title="Packs" subtitle="Install and study offline" />
 
       {error ? (
@@ -281,7 +283,7 @@ export default function PacksCatalogScreen() {
                 <Ionicons name="library-outline" size={26} color="#FFFFFF" />
               </View>
               <Text className="text-center text-[16px] font-bold text-ink">No courses yet</Text>
-              <Text className="mt-2 text-center text-[13px] leading-5 text-slate-500">
+              <Text className="mt-2 text-center text-[13px] leading-5 text-muted">
                 Subscribe to courses, then install packs here for offline study.
               </Text>
               <Pressable
@@ -301,7 +303,7 @@ export default function PacksCatalogScreen() {
             grouped.map((cat) => (
               <View key={cat.code} className="mb-7">
                 <View className="mb-3 flex-row items-center justify-between gap-3 px-0.5">
-                  <Text className="min-w-0 flex-1 text-[11px] font-semibold uppercase text-[#94A3B8]" style={{ letterSpacing: 2.0 }}>
+                  <Text className="min-w-0 flex-1 text-[11px] font-semibold uppercase text-subtle" style={{ letterSpacing: 2.0 }}>
                     {cat.name}
                   </Text>
                   <Pressable hitSlop={8} onPress={() => openManageCategory(cat.code)}>

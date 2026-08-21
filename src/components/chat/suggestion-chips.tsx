@@ -1,5 +1,6 @@
 import { Pressable, ScrollView, Text } from 'react-native';
 import { BRAND_BLUE } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 const STARTERS = [
@@ -19,6 +20,7 @@ export function SuggestionChips({
   disabled?: boolean;
   onSelect: (value: string) => void;
 }) {
+  const { colors } = useTheme();
   const chips = showStarters ? STARTERS : suggestions.slice(0, 4);
   if (!chips.length) return null;
 
@@ -46,8 +48,8 @@ export function SuggestionChips({
           style={{
             borderRadius: 16,
             borderWidth: 1,
-            borderColor: '#BFDBFE',
-            backgroundColor: '#FFFFFF',
+            borderColor: colors.selectedBorder,
+            backgroundColor: colors.surface,
             paddingHorizontal: 14,
             paddingVertical: 9,
           }}

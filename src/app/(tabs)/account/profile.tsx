@@ -6,7 +6,8 @@ import type { CountryCode } from 'libphonenumber-js';
 import { useAuth } from '@/auth/AuthProvider';
 import { AuthError, AuthField, AuthPrimaryButton } from '@/components/auth/auth-ui';
 import { PhoneField } from '@/components/auth/phone-field';
-import { SUB_PAGE_BG, SubInkHeader } from '@/components/subscriptions/sub-chrome';
+import { SubInkHeader } from '@/components/subscriptions/sub-chrome';
+import { useTheme } from '@/theme/ThemeProvider';
 import {
   DEFAULT_PHONE_COUNTRY,
   splitE164,
@@ -15,6 +16,7 @@ import {
 } from '@/auth/phone';
 
 export default function ProfileScreen() {
+  const { colors } = useTheme();
   const { user, updateProfile } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -51,7 +53,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: SUB_PAGE_BG }}>
+    <View className="flex-1 bg-canvas">
       <SubInkHeader
         title="Profile"
         onBack={() => router.navigate('/(tabs)/account' as never)}
@@ -70,7 +72,7 @@ export default function ProfileScreen() {
         <AuthField label="Name" value={name} onChangeText={setName} placeholder="Your name" />
         <View className="mb-3.5">
           <Text
-            className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase text-[#94A3B8]"
+            className="mb-1.5 px-0.5 text-[11px] font-semibold uppercase text-subtle"
             style={{ letterSpacing: 1.5 }}
           >
             Email
@@ -78,12 +80,12 @@ export default function ProfileScreen() {
           <TextInput
             editable={false}
             value={user?.email || ''}
-            className="px-4 py-3.5 text-[15px] text-slate-500"
+            className="px-4 py-3.5 text-[15px] text-muted"
             style={{
               borderRadius: 16,
               borderWidth: 1,
-              borderColor: '#E8EEF4',
-              backgroundColor: '#F1F5F9',
+              borderColor: colors.line,
+              backgroundColor: colors.surfaceMuted,
             }}
           />
         </View>

@@ -3,6 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 import type { LearnerPackSummary, PackCourse } from '@/subscription/api';
 import { formatDateDmY, formatDaysLeft, daysLeftUntil } from '@/subscription/dates';
 import { BRAND_BLUE } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
+import { cardChrome, type ThemeColors } from '@/theme/tokens';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 export type PackHomeStatus = 'active' | 'expired' | 'unpaid';
@@ -13,26 +15,14 @@ export function packHomeStatus(pack: LearnerPackSummary): PackHomeStatus {
   return 'unpaid';
 }
 
-function statusMeta(status: PackHomeStatus) {
+function statusMeta(status: PackHomeStatus, colors: ThemeColors) {
   if (status === 'active') {
-    return {
-      label: 'Active',
-      tone: '#0F766E',
-      wash: '#ECFDF5',
-    };
+    return { label: 'Active', tone: colors.success, wash: colors.successBg };
   }
   if (status === 'expired') {
-    return {
-      label: 'Expired',
-      tone: '#B45309',
-      wash: '#FFFBEB',
-    };
+    return { label: 'Expired', tone: colors.warning, wash: colors.warningBg };
   }
-  return {
-    label: 'Unpaid',
-    tone: '#64748B',
-    wash: '#F1F5F9',
-  };
+  return { label: 'Unpaid', tone: colors.muted, wash: colors.surfaceMuted };
 }
 
 export function HomePacksSection({
@@ -46,12 +36,13 @@ export function HomePacksSection({
   onCreatePack: () => void;
   onManagePacks: () => void;
 }) {
+  const { colors } = useTheme();
   return (
     <View className="mb-8">
       <View className="mb-4 flex-row items-end justify-between px-0.5">
         <View>
           <Text
-            className="text-[11px] font-semibold uppercase text-[#94A3B8]"
+            className="text-[11px] font-semibold uppercase text-subtle"
             style={[LABEL_TEXT_ANDROID, { letterSpacing: 2.0 }]}
           >
             Subscriptions
@@ -69,27 +60,19 @@ export function HomePacksSection({
 
       {packs.length === 0 ? (
         <View
-          className="rounded-[24px] bg-white px-5 py-6"
-          style={{
-            borderWidth: 1,
-            borderColor: '#E8EEF4',
-            shadowColor: '#0B1424',
-            shadowOpacity: 0.05,
-            shadowRadius: 16,
-            shadowOffset: { width: 0, height: 6 },
-            elevation: 2,
-          }}
+          className="rounded-[24px] bg-surface px-5 py-6"
+          style={cardChrome(colors)}
         >
           <View
             className="mb-4 h-12 w-12 items-center justify-center rounded-[14px]"
-            style={{ backgroundColor: '#EFF6FF' }}
+            style={{ backgroundColor: colors.iconBg }}
           >
             <Ionicons name="layers-outline" size={22} color={BRAND_BLUE} />
           </View>
           <Text className="text-[18px] font-black tracking-tight text-ink">
             Unlock your first pack
           </Text>
-          <Text className="mt-2 text-[14px] leading-6 text-slate-500">
+          <Text className="mt-2 text-[14px] leading-6 text-muted">
             Choose a category, select courses, and activate offline access in minutes.
           </Text>
           <Pressable
@@ -110,7 +93,7 @@ export function HomePacksSection({
         <View className="gap-3.5">
           {packs.map((pack) => {
             const status = packHomeStatus(pack);
-            const meta = statusMeta(status);
+            const meta = statusMeta(status, colors);
             const daysLeft =
               status === 'active'
                 ? daysLeftUntil(pack.activeSubscription?.expiresAt)
@@ -118,16 +101,8 @@ export function HomePacksSection({
             return (
               <View
                 key={pack.id}
-                className="rounded-[24px] bg-white px-4 py-4"
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#E8EEF4',
-                  shadowColor: '#0B1424',
-                  shadowOpacity: 0.05,
-                  shadowRadius: 16,
-                  shadowOffset: { width: 0, height: 6 },
-                  elevation: 2,
-                }}
+                className="rounded-[24px] bg-surface px-4 py-4"
+                style={cardChrome(colors)}
               >
                 <View className="min-w-0">
                   <View className="flex-row items-center gap-2">
@@ -165,7 +140,7 @@ export function HomePacksSection({
 
                   {status === 'active' && pack.activeSubscription ? (
                     <Text
-                      className="mt-1.5 text-[13px] text-slate-500"
+                      className="mt-1.5 text-[13px] text-muted"
                       numberOfLines={1}
                       style={LABEL_TEXT_ANDROID}
                     >
@@ -176,7 +151,7 @@ export function HomePacksSection({
                     </Text>
                   ) : status === 'expired' ? (
                     <Text
-                      className="mt-1.5 text-[13px] text-slate-500"
+                      className="mt-1.5 text-[13px] text-muted"
                       numberOfLines={1}
                       style={LABEL_TEXT_ANDROID}
                     >
@@ -184,7 +159,7 @@ export function HomePacksSection({
                     </Text>
                   ) : (
                     <Text
-                      className="mt-1.5 text-[13px] text-slate-500"
+                      className="mt-1.5 text-[13px] text-muted"
                       numberOfLines={1}
                       style={LABEL_TEXT_ANDROID}
                     >
@@ -193,7 +168,7 @@ export function HomePacksSection({
                   )}
 
                   {status === 'active' && daysLeft != null ? (
-                    <View className="mt-3.5 h-1.5 overflow-hidden rounded-full bg-[#EEF2F7]">
+                    <View className="mt-3.5 h-1.5 overflow-hidden rounded-full bg-line">
                       <View
                         className="h-full rounded-full"
                         style={{
@@ -204,9 +179,9 @@ export function HomePacksSection({
                     </View>
                   ) : null}
 
-                  <View className="mt-3.5 overflow-hidden rounded-2xl bg-[#F8FAFC]">
+                  <View className="mt-3.5 overflow-hidden rounded-2xl bg-surface-muted">
                     {pack.courses.length === 0 ? (
-                      <Text className="px-3.5 py-3 text-[13px] text-slate-400">
+                      <Text className="px-3.5 py-3 text-[13px] text-subtle">
                         No courses selected yet
                       </Text>
                     ) : (
@@ -215,10 +190,10 @@ export function HomePacksSection({
                           key={course.id}
                           onPress={() => onOpenCourse(pack, course)}
                           className={`flex-row items-center gap-3 px-3.5 py-3 ${
-                            idx > 0 ? 'border-t border-[#E8EEF4]' : ''
+                            idx > 0 ? 'border-t border-line' : ''
                           }`}
                         >
-                          <View className="h-9 w-9 items-center justify-center rounded-[12px] bg-white">
+                          <View className="h-9 w-9 items-center justify-center rounded-[12px] bg-surface">
                             <Ionicons name="book-outline" size={16} color={BRAND_BLUE} />
                           </View>
                           <Text
@@ -227,7 +202,7 @@ export function HomePacksSection({
                           >
                             {course.name}
                           </Text>
-                          <Ionicons name="chevron-forward" size={15} color="#94A3B8" />
+                          <Ionicons name="chevron-forward" size={15} color={colors.subtle} />
                         </Pressable>
                       ))
                     )}

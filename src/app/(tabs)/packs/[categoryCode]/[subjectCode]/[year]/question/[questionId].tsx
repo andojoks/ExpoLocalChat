@@ -11,7 +11,6 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { Ionicons } from '@expo/vector-icons';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
-  SUB_PAGE_BG,
   SubCard,
   SubFooterBar,
   SubInkHeader,
@@ -25,6 +24,8 @@ import { listMyPacks, type LearnerPackSummary } from '@/subscription/api';
 import { cacheGetPacks, cacheSetPacks } from '@/subscription/cache';
 import { recordRecentStudy } from '@/study/recent-history';
 import { recordStudyActivity } from '@/study/streak-api';
+import { BRAND_BLUE } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
 
 function findLearnerPack(
   packs: LearnerPackSummary[],
@@ -69,6 +70,7 @@ function collectTopics(node: ExamQuestionNode): string[] {
 }
 
 export default function QuestionDetailScreen() {
+  const { colors } = useTheme();
   const db = useSQLiteContext();
   const router = useRouter();
   const confirm = useConfirmDialog();
@@ -310,7 +312,7 @@ export default function QuestionDetailScreen() {
       : null;
 
   return (
-    <View className="flex-1" style={{ backgroundColor: SUB_PAGE_BG }}>
+    <View className="flex-1 bg-canvas">
       <SubInkHeader
         title={title}
         subtitle={subtitle}
@@ -352,12 +354,12 @@ export default function QuestionDetailScreen() {
                         key={topic}
                         className="rounded-full px-3 py-1.5"
                         style={{
-                          backgroundColor: '#FFFFFF',
+                          backgroundColor: colors.surface,
                           borderWidth: 1,
-                          borderColor: '#BFDBFE',
+                          borderColor: colors.selectedBorder,
                         }}
                       >
-                        <Text className="text-xs font-semibold text-[#0439C4]">{topic}</Text>
+                        <Text className="text-xs font-semibold" style={{ color: BRAND_BLUE }}>{topic}</Text>
                       </View>
                     ))}
                   </View>
@@ -369,12 +371,12 @@ export default function QuestionDetailScreen() {
                     className="flex-row items-center gap-2 rounded-2xl px-3.5 py-3"
                     style={{
                       borderWidth: 1,
-                      borderColor: '#FDE68A',
-                      backgroundColor: '#FFFBEB',
+                      borderColor: colors.warning,
+                      backgroundColor: colors.warningBg,
                     }}
                   >
-                    <Ionicons name="lock-closed" size={14} color="#B45309" />
-                    <Text className="flex-1 text-xs font-semibold text-[#92400E]">
+                    <Ionicons name="lock-closed" size={14} color={colors.warning} />
+                    <Text className="flex-1 text-xs font-semibold" style={{ color: colors.warning }}>
                       Subscribe to reveal answers and correct options
                     </Text>
                   </Pressable>
@@ -391,7 +393,7 @@ export default function QuestionDetailScreen() {
                     />
                   ) : (
                     <View className="items-center py-10">
-                      <ActivityIndicator color="#0548E8" />
+                      <ActivityIndicator color={BRAND_BLUE} />
                     </View>
                   )}
                 </SubCard>
@@ -406,15 +408,15 @@ export default function QuestionDetailScreen() {
                   disabled={!prev}
                   onPress={() => prev && goTo(prev.id)}
                   className="h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl"
-                  style={{ backgroundColor: prev ? '#0548E8' : '#E2E8F0' }}
+                  style={{ backgroundColor: prev ? BRAND_BLUE : colors.controlOff }}
                 >
                   <Ionicons
                     name="chevron-back"
                     size={18}
-                    color={prev ? '#FFFFFF' : '#94A3B8'}
+                    color={prev ? '#FFFFFF' : colors.subtle}
                   />
                   <Text
-                    className={`text-sm font-bold ${prev ? 'text-white' : 'text-slate-400'}`}
+                    className={`text-sm font-bold ${prev ? 'text-white' : 'text-subtle'}`}
                   >
                     Previous
                   </Text>
@@ -423,17 +425,17 @@ export default function QuestionDetailScreen() {
                   disabled={!next}
                   onPress={() => next && goTo(next.id)}
                   className="h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl"
-                  style={{ backgroundColor: next ? '#0548E8' : '#E2E8F0' }}
+                  style={{ backgroundColor: next ? BRAND_BLUE : colors.controlOff }}
                 >
                   <Text
-                    className={`text-sm font-bold ${next ? 'text-white' : 'text-slate-400'}`}
+                    className={`text-sm font-bold ${next ? 'text-white' : 'text-subtle'}`}
                   >
                     Next
                   </Text>
                   <Ionicons
                     name="chevron-forward"
                     size={18}
-                    color={next ? '#FFFFFF' : '#94A3B8'}
+                    color={next ? '#FFFFFF' : colors.subtle}
                   />
                 </Pressable>
               </View>

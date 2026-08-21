@@ -1,11 +1,12 @@
 import { Tabs, useSegments } from 'expo-router';
 import { AppTabBar } from '@/components/app-tab-bar';
+import { useTheme } from '@/theme/ThemeProvider';
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
   const segments = useSegments() as string[];
   const packsIdx = segments.indexOf('packs');
   const packsChild = packsIdx >= 0 ? segments[packsIdx + 1] : undefined;
-  // Catalog is `packs` or `packs/index`; any deeper route is an opened pack.
   const inOpenedPack = Boolean(packsChild && packsChild !== 'index');
   const hideTabBar =
     segments.includes('subscriptions') ||
@@ -18,7 +19,7 @@ export default function TabsLayout() {
       tabBar={(props) => (hideTabBar ? null : <AppTabBar {...props} />)}
       screenOptions={{
         headerShown: false,
-        sceneStyle: { backgroundColor: '#E8EEF5' },
+        sceneStyle: { backgroundColor: colors.canvas },
         tabBarStyle: {
           position: 'absolute',
           backgroundColor: 'transparent',

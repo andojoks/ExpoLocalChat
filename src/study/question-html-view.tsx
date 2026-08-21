@@ -3,6 +3,9 @@ import { ActivityIndicator, Platform, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { loadChtmlCss } from '@/lib/assets/loadBundledStyleText';
 import { packAssetsRoot } from '@/packs/asset-cache';
+import { useTheme } from '@/theme/ThemeProvider';
+import { BRAND_BLUE } from '@/theme/brand';
+import type { ThemeColors } from '@/theme/tokens';
 
 /** Measure content root — not body.scrollHeight (RN WebView frame keeps body tall after collapse). */
 const INJECTED_HEIGHT_JS = `
@@ -495,11 +498,97 @@ mjx-container, mjx-container * { color: #64748B !important; }
 }
 `;
 
+function hexToRgba(hex: string, alpha: number) {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const n = parseInt(full, 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function questionThemeCss(colors: ThemeColors, isDark: boolean): string {
+  const fade0 = hexToRgba(colors.surface, 0);
+  const fade1 = hexToRgba(colors.surface, 0.72);
+  return `
+html, body { color: ${colors.ink}; }
+.el-muted { color: ${colors.muted}; }
+.el-option {
+  border-color: ${colors.line};
+  background: ${colors.sheetBg};
+}
+.el-option--selected {
+  border-color: ${colors.selectedBorder};
+  background: ${colors.selectedBg};
+}
+.el-option-label {
+  background: ${colors.controlOff};
+  color: ${colors.muted};
+}
+.el-btn--locked { background: ${colors.subtle}; }
+.el-answer-accordion { background: ${colors.sheetBg}; }
+.el-answer-accordion.is-open { background: ${colors.surfaceMuted}; }
+.el-answer-accordion__trigger,
+.el-answer-accordion__title { color: ${colors.ink}; }
+.el-answer-accordion__hint { color: ${colors.muted}; }
+.el-answer-accordion--locked { background: ${colors.warningBg}; }
+.el-answer-accordion--locked .el-answer-accordion__title,
+.el-answer-accordion--locked .el-answer-accordion__hint,
+.el-answer-accordion--locked .el-answer-accordion__icon { color: ${colors.warning}; }
+.el-answer-accordion__empty {
+  color: ${colors.muted};
+  background: ${colors.surface};
+  border-color: ${colors.line};
+}
+.el-reveal-heading { color: ${colors.muted}; }
+.el-reveal-block {
+  background: ${colors.surface};
+  border-color: ${colors.line};
+}
+.el-question-block--part { border-top-color: ${colors.line}; }
+.el-question-index,
+.el-paper-peek-index {
+  background: ${colors.iconBg};
+  color: ${isDark ? colors.ink : '#0439C4'};
+}
+.el-question-meta,
+.el-paper-subtitle,
+.el-paper-hint { color: ${colors.muted}; }
+.el-paper-title { color: ${colors.ink}; }
+.el-section-title,
+.el-paper-peek-section { color: ${isDark ? colors.ink : '#0439C4'}; }
+.el-paper-peek-card {
+  border-color: ${colors.line};
+  background: ${colors.surface};
+}
+.el-paper-peek-card:active { background: ${colors.sheetBg}; }
+.el-paper-peek-marks,
+.el-paper-peek-chevron { color: ${colors.subtle}; }
+.el-paper-peek-body .el-render-root { color: ${colors.muted}; }
+.el-paper-peek-body mjx-container,
+.el-paper-peek-body mjx-container * { color: ${colors.muted} !important; }
+.el-paper-peek-fade {
+  background: linear-gradient(to bottom, ${fade0} 0%, ${fade1} 45%, ${colors.surface} 100%);
+}
+`;
+}
+
+function peekThemeCss(colors: ThemeColors): string {
+  return `
+html, body { color: ${colors.muted} !important; }
+.el-render-root { color: ${colors.muted}; }
+mjx-container, mjx-container * { color: ${colors.muted} !important; }
+`;
+}
+
 function buildDocument(
   bodyHtml: string,
   chtmlCss: string,
   variant: 'full' | 'peek',
   lite = false,
+  themeCss = '',
+  peekOverride = '',
 ): string {
   const isComposed =
     bodyHtml.includes('data-el-question-doc') || bodyHtml.includes('el-question-doc');
@@ -517,6 +606,8 @@ ${chtmlCss}
 </style>`}
 <style>${BASE_CSS}</style>
 ${variant === 'peek' ? `<style>${PEEK_CSS}</style>` : ''}
+<style>${themeCss}</style>
+${variant === 'peek' && peekOverride ? `<style>${peekOverride}</style>` : ''}
 </head>
 <body>
 ${body}
@@ -554,6 +645,7 @@ export function QuestionHtmlView({
     dir?: 'left' | 'right' | string;
   }) => void;
 }) {
+  const { colors, isDark } = useTheme();
   const resolvedVariant = variant || (preview ? 'peek' : 'full');
   const [chtmlCss, setChtmlCss] = useState<string | null>(lite ? '' : null);
   const initialHeight =
@@ -588,10 +680,17 @@ export function QuestionHtmlView({
   const source = useMemo(() => {
     if (chtmlCss === null) return null;
     return {
-      html: buildDocument(html, chtmlCss, resolvedVariant, lite),
+      html: buildDocument(
+        html,
+        chtmlCss,
+        resolvedVariant,
+        lite,
+        questionThemeCss(colors, isDark),
+        peekThemeCss(colors),
+      ),
       baseUrl: assetsBase || undefined,
     };
-  }, [html, chtmlCss, resolvedVariant, assetsBase, lite]);
+  }, [html, chtmlCss, resolvedVariant, assetsBase, lite, colors, isDark]);
 
   const onMessage = useCallback(
     (event: { nativeEvent: { data: string } }) => {
@@ -638,8 +737,8 @@ export function QuestionHtmlView({
 
   if (!html?.trim()) {
     return (
-      <View className="rounded-md border border-slate-200 bg-slate-50 p-3">
-        <Text className="text-sm text-slate-500">No rendered HTML for this question.</Text>
+      <View className="rounded-md border border-line bg-surface-muted p-3">
+        <Text className="text-sm text-muted">No rendered HTML for this question.</Text>
       </View>
     );
   }
@@ -650,7 +749,7 @@ export function QuestionHtmlView({
         className="items-center justify-center py-6"
         style={{ minHeight: fill ? undefined : minHeight, flex: fill ? 1 : undefined }}
       >
-        <ActivityIndicator color="#0548E8" />
+        <ActivityIndicator color={BRAND_BLUE} />
       </View>
     );
   }
@@ -672,7 +771,7 @@ export function QuestionHtmlView({
     >
       {loading && !fill ? (
         <View className="absolute inset-0 z-10 items-center justify-center">
-          <ActivityIndicator color="#0548E8" />
+          <ActivityIndicator color={BRAND_BLUE} />
         </View>
       ) : null}
       <WebView

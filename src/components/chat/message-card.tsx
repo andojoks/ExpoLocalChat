@@ -6,6 +6,7 @@ import type { AgentPhase } from '@/ai/agent';
 import { RichMarkdown } from '@/components/rich-markdown';
 import { ThinkingIndicator } from './thinking-bubble';
 import { BRAND_BLUE } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 function messagePropsEqual(
@@ -45,24 +46,25 @@ export const MessageCard = memo(function MessageCard({
   if (!message) return null;
   const user = message.role === 'user';
   const empty = !message.content?.trim();
+  const { colors } = useTheme();
 
   return (
     <View className={`flex-row items-end gap-2.5 ${user ? 'justify-end' : 'justify-start'}`}>
       {!user && <BotAvatar />}
       <View className="max-w-[82%]">
         <View
-          className={`px-4 py-3 ${user ? '' : 'bg-white'}`}
+          className={`px-4 py-3 ${user ? '' : 'bg-surface'}`}
           style={{
             borderRadius: 22,
             borderBottomRightRadius: user ? 8 : 22,
             borderBottomLeftRadius: user ? 22 : 8,
-            backgroundColor: user ? BRAND_BLUE : '#FFFFFF',
+            backgroundColor: user ? BRAND_BLUE : colors.surface,
             borderWidth: user ? 0 : 1,
-            borderColor: '#E8EEF4',
+            borderColor: colors.line,
             ...(Platform.OS === 'web'
               ? {}
               : {
-                  shadowColor: '#0B1424',
+                  shadowColor: colors.ink,
                   shadowOpacity: user ? 0.12 : 0.05,
                   shadowRadius: user ? 10 : 12,
                   shadowOffset: { width: 0, height: 4 },
@@ -74,7 +76,7 @@ export const MessageCard = memo(function MessageCard({
             <ThinkingIndicator phase={phase} />
           ) : empty ? (
             <Text
-              className={`text-[15px] leading-[23px] ${user ? 'text-white/70' : 'text-slate-400'}`}
+              className={`text-[15px] leading-[23px] ${user ? 'text-white/70' : 'text-subtle'}`}
             >
               …
             </Text>
@@ -84,7 +86,7 @@ export const MessageCard = memo(function MessageCard({
         </View>
         {!!message.createdAt && (
           <Text
-            className={`mt-1.5 text-[10px] font-medium text-slate-400 ${user ? 'text-right' : 'text-left'}`}
+            className={`mt-1.5 text-[10px] font-medium text-subtle ${user ? 'text-right' : 'text-left'}`}
             style={LABEL_TEXT_ANDROID}
           >
             {formatTime(message.createdAt)}
@@ -119,10 +121,11 @@ export function BotAvatar({ large = false }: { large?: boolean }) {
 }
 
 function UserAvatar() {
+  const { colors } = useTheme();
   return (
     <View
       className="h-9 w-9 items-center justify-center"
-      style={{ borderRadius: 14, backgroundColor: '#EFF6FF' }}
+      style={{ borderRadius: 14, backgroundColor: colors.iconBg }}
     >
       <Ionicons name="person" size={16} color={BRAND_BLUE} />
     </View>

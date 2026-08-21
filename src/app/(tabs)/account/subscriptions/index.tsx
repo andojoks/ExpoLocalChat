@@ -23,7 +23,6 @@ import {
 } from '@/subscription/cache';
 import { formatDateDmY, formatDaysLeft } from '@/subscription/dates';
 import {
-  SUB_PAGE_BG,
   SubBanner,
   SubEyebrow,
   SubFooterBar,
@@ -32,6 +31,8 @@ import {
 } from '@/components/subscriptions/sub-chrome';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 import { BRAND_BLUE } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
+import { cardChrome, type ThemeColors } from '@/theme/tokens';
 
 function packStatus(pack: LearnerPackSummary) {
   if (pack.activeSubscription) return 'active' as const;
@@ -39,17 +40,18 @@ function packStatus(pack: LearnerPackSummary) {
   return 'unpaid' as const;
 }
 
-function statusMeta(status: 'active' | 'expired' | 'unpaid') {
+function statusMeta(status: 'active' | 'expired' | 'unpaid', colors: ThemeColors) {
   if (status === 'active') {
-    return { label: 'Active', tone: '#0F766E', wash: '#ECFDF5' };
+    return { label: 'Active', tone: colors.success, wash: colors.successBg };
   }
   if (status === 'expired') {
-    return { label: 'Expired', tone: '#B45309', wash: '#FFFBEB' };
+    return { label: 'Expired', tone: colors.warning, wash: colors.warningBg };
   }
-  return { label: 'Unpaid', tone: '#64748B', wash: '#F1F5F9' };
+  return { label: 'Unpaid', tone: colors.muted, wash: colors.surfaceMuted };
 }
 
 export default function SubscriptionsHubScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [packs, setPacks] = useState<LearnerPackSummary[]>([]);
   const [categories, setCategories] = useState<BuilderCategory[]>([]);
@@ -121,7 +123,7 @@ export default function SubscriptionsHubScreen() {
   }, [packs, categories]);
 
   return (
-    <View className="flex-1" style={{ backgroundColor: SUB_PAGE_BG }}>
+    <View className="flex-1 bg-canvas">
       <SubInkHeader
         title="Subscriptions"
         onBack={() => router.navigate('/(tabs)/account' as never)}
@@ -155,26 +157,18 @@ export default function SubscriptionsHubScreen() {
 
             {packs.length === 0 ? (
               <View
-                className="rounded-[24px] bg-white px-5 py-8"
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#E8EEF4',
-                  shadowColor: '#0B1424',
-                  shadowOpacity: 0.05,
-                  shadowRadius: 16,
-                  shadowOffset: { width: 0, height: 6 },
-                  elevation: 2,
-                }}
+                className="rounded-[24px] bg-surface px-5 py-8"
+                  style={cardChrome(colors)}
               >
                 <View className="items-center">
                   <View
                     className="mb-3 h-12 w-12 items-center justify-center rounded-[14px]"
-                    style={{ backgroundColor: '#EFF6FF' }}
+                    style={{ backgroundColor: colors.iconBg }}
                   >
                     <Ionicons name="albums-outline" size={22} color={BRAND_BLUE} />
                   </View>
                   <Text className="text-center text-[16px] font-bold text-ink">No packs yet</Text>
-                  <Text className="mt-1.5 text-center text-[13px] leading-5 text-slate-500">
+                  <Text className="mt-1.5 text-center text-[13px] leading-5 text-muted">
                     Tap Add pack to choose a category and courses.
                   </Text>
                 </View>
@@ -183,23 +177,15 @@ export default function SubscriptionsHubScreen() {
               <View className="gap-3.5">
                 {packs.map((p) => {
                   const status = packStatus(p);
-                  const meta = statusMeta(status);
+                  const meta = statusMeta(status, colors);
                   return (
                     <Pressable
                       key={p.id}
                       onPress={() =>
                         router.push(`/(tabs)/account/subscriptions/${p.id}` as never)
                       }
-                      className="rounded-[24px] bg-white px-4 py-4"
-                      style={{
-                        borderWidth: 1,
-                        borderColor: '#E8EEF4',
-                        shadowColor: '#0B1424',
-                        shadowOpacity: 0.05,
-                        shadowRadius: 16,
-                        shadowOffset: { width: 0, height: 6 },
-                        elevation: 2,
-                      }}
+                      className="rounded-[24px] bg-surface px-4 py-4"
+                      style={cardChrome(colors)}
                     >
                       <View className="min-w-0">
                         <View className="flex-row items-center gap-2">
@@ -224,24 +210,24 @@ export default function SubscriptionsHubScreen() {
                         </View>
 
                         {status === 'active' && p.activeSubscription ? (
-                          <Text className="mt-1.5 text-[13px] text-slate-500">
+                          <Text className="mt-1.5 text-[13px] text-muted">
                             {formatDaysLeft(p.activeSubscription.expiresAt)}
                             {p.activeSubscription.expiresAt
                               ? ` · ${formatDateDmY(p.activeSubscription.expiresAt)}`
                               : ''}
                           </Text>
                         ) : status === 'expired' ? (
-                          <Text className="mt-1.5 text-[13px] text-slate-500">
+                          <Text className="mt-1.5 text-[13px] text-muted">
                             Renew to restore answer unlocks
                           </Text>
                         ) : (
-                          <Text className="mt-1.5 text-[13px] text-slate-500">
+                          <Text className="mt-1.5 text-[13px] text-muted">
                             Ready to activate with MoMo
                           </Text>
                         )}
 
                         <Text
-                          className="mt-2 text-[12px] text-[#94A3B8]"
+                          className="mt-2 text-[12px] text-subtle"
                           numberOfLines={1}
                           style={LABEL_TEXT_ANDROID}
                         >

@@ -54,7 +54,7 @@ export default function ForgotPasswordScreen() {
         disabled={busy || !identifier.trim()}
         onPress={onSubmit}
       />
-      <Text className="mt-4 text-center text-xs text-[#94A3B8]">
+      <Text className="mt-4 text-center text-xs text-subtle">
         For phone logins, the code is sent to the email on that account.
       </Text>
     </AuthScreenShell>

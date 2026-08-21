@@ -13,7 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 import {
-  SUB_PAGE_BG,
   SubBanner,
   SubCard,
   SubInkHeader,
@@ -26,16 +25,19 @@ import { runPackInstall, runPackRemove } from '@/packs/pack-install-jobs';
 import { compareVersions, installKey } from '@/packs/pack-utils';
 import type { CatalogPack, InstalledPack } from '@/packs/types';
 import { usePackInstallJob } from '@/packs/use-pack-install-jobs';
+import { useTheme } from '@/theme/ThemeProvider';
+import { BRAND_BLUE } from '@/theme/brand';
 
 function PackJobIndicator({
   job,
 }: {
   job: { phase: string; progress: number; error?: string } | undefined;
 }) {
+  const { colors } = useTheme();
   if (!job) return null;
   if (job.error) {
     return (
-      <Text className="mt-2 text-[11px] font-semibold text-[#B91C1C]" numberOfLines={2}>
+      <Text className="mt-2 text-[11px] font-semibold" style={{ color: colors.danger }} numberOfLines={2}>
         {job.error}
       </Text>
     );
@@ -47,7 +49,7 @@ function PackJobIndicator({
         <Text className="mb-1 text-[11px] font-semibold text-[#0439C4]">
           Downloading {pct}%
         </Text>
-        <View className="h-1.5 overflow-hidden rounded-full bg-[#E8EEF4]">
+        <View className="h-1.5 overflow-hidden rounded-full bg-line">
           <View
             className="h-full rounded-full bg-[#0548E8]"
             style={{ width: `${Math.max(4, pct)}%` }}
@@ -88,6 +90,7 @@ function YearPackRow({
   onSync: () => Promise<void>;
   onRemove: () => void;
 }) {
+  const { colors } = useTheme();
   const key = installKey({
     categoryCode: pack.category.code,
     subjectCode: pack.subject.code,
@@ -138,14 +141,14 @@ function YearPackRow({
             <View
               className="rounded-full px-2.5 py-1"
               style={{
-                backgroundColor: status.tone === 'warn' ? '#FFFBEB' : '#F1F5F9',
+                backgroundColor: status.tone === 'warn' ? colors.warningBg : colors.surfaceMuted,
               }}
             >
               <Text
                 className="text-[10px] font-bold"
                 style={[
                   LABEL_TEXT_ANDROID,
-                  { color: status.tone === 'warn' ? '#B45309' : '#64748B' },
+                  { color: status.tone === 'warn' ? colors.warning : colors.muted },
                 ]}
               >
                 {status.text}
@@ -156,8 +159,8 @@ function YearPackRow({
 
         {showDownload ? (
           downloading ? (
-            <View className="h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-[#EFF6FF]">
-              <ActivityIndicator size="small" color="#0548E8" />
+            <View className="h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-icon-bg">
+              <ActivityIndicator size="small" color={BRAND_BLUE} />
             </View>
           ) : (
             <Pressable
@@ -167,9 +170,9 @@ function YearPackRow({
                 void onSync().finally(() => setRowBusy(false));
               }}
               accessibilityLabel={local ? 'Update pack' : 'Download pack'}
-              className="h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-[#EFF6FF]"
+              className="h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-icon-bg"
             >
-              <Ionicons name="cloud-download-outline" size={18} color="#0548E8" />
+              <Ionicons name="cloud-download-outline" size={18} color={BRAND_BLUE} />
             </Pressable>
           )
         ) : null}
@@ -178,7 +181,7 @@ function YearPackRow({
 
         {local ? (
           removing ? (
-            <View className="h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-[#FEF2F2]">
+            <View className="h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-danger-bg">
               <ActivityIndicator size="small" color="#DC2626" />
             </View>
           ) : (
@@ -187,7 +190,7 @@ function YearPackRow({
               disabled={busy}
               onPress={onRemove}
               accessibilityLabel="Remove pack"
-              className="h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-[#FEF2F2]"
+              className="h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-danger-bg"
             >
               <Ionicons name="trash-outline" size={18} color="#DC2626" />
             </Pressable>
@@ -209,7 +212,7 @@ function YearPackRow({
             {paperNumbers.map((n) => (
               <View
                 key={n}
-                className="h-9 min-w-[36px] items-center justify-center rounded-xl bg-[#EFF6FF] px-2.5"
+                className="h-9 min-w-[36px] items-center justify-center rounded-xl bg-icon-bg px-2.5"
               >
                 <Text className="text-xs font-black text-[#0439C4]">P{n}</Text>
               </View>
@@ -218,7 +221,7 @@ function YearPackRow({
         ) : null}
 
         {!local && !busy ? (
-          <Text className="mt-1 text-[11px] leading-4 text-[#94A3B8]">
+          <Text className="mt-1 text-[11px] leading-4 text-subtle">
             Tap download to install this year
           </Text>
         ) : null}
@@ -388,7 +391,7 @@ export default function CoursePacksScreen() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: SUB_PAGE_BG }}>
+    <View className="flex-1 bg-canvas">
       <SubInkHeader
         title={title}
         subtitle={subtitle}
@@ -430,7 +433,7 @@ export default function CoursePacksScreen() {
             <SubCard>
               <View className="items-center px-5 py-8">
                 <Text className="text-center text-[16px] font-bold text-ink">No packs</Text>
-                <Text className="mt-1.5 text-center text-[13px] leading-5 text-slate-500">
+                <Text className="mt-1.5 text-center text-[13px] leading-5 text-muted">
                   No year packs are available for this course yet.
                 </Text>
               </View>

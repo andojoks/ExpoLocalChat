@@ -4,11 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import {
-  BRAND_BLUE,
-  BRAND_HEADER_GRADIENT,
-  BRAND_MIST,
-} from '@/theme/brand';
+import { BRAND_BLUE, BRAND_HEADER_GRADIENT } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 /** Flat brand-blue nav header — matches Preferences / Subscriptions. */
@@ -124,7 +121,7 @@ export function SubInkHeader({
 export function SubEyebrow({ children }: { children: string }) {
   return (
     <Text
-      className="mb-3 px-0.5 text-[11px] font-semibold uppercase text-[#94A3B8]"
+      className="mb-3 px-0.5 text-[11px] font-semibold uppercase text-subtle"
       style={[LABEL_TEXT_ANDROID, { letterSpacing: 2.0 }]}
     >
       {children}
@@ -139,13 +136,14 @@ export function SubCard({
   children: ReactNode;
   className?: string;
 }) {
+  const { colors } = useTheme();
   return (
     <View
-      className={`overflow-hidden rounded-[24px] bg-white ${className}`}
+      className={`overflow-hidden rounded-[24px] bg-surface ${className}`}
       style={{
         borderWidth: 1,
-        borderColor: '#E8EEF4',
-        shadowColor: '#0B1424',
+        borderColor: colors.line,
+        shadowColor: colors.ink,
         shadowOpacity: 0.05,
         shadowRadius: 16,
         shadowOffset: { width: 0, height: 6 },
@@ -186,10 +184,11 @@ export function SubPrimaryButton({
 
 export function SubFooterBar({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   return (
     <View
-      className="border-t border-[#E8EEF4] bg-white px-5 pt-3"
-      style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+      className="border-t border-line bg-surface px-5 pt-3"
+      style={{ paddingBottom: Math.max(insets.bottom, 12), backgroundColor: colors.surface, borderTopColor: colors.line }}
     >
       {children}
     </View>
@@ -207,12 +206,31 @@ export function SubBanner({
   title?: string;
   body: string;
 }) {
+  const { colors, isDark } = useTheme();
   const styles =
     tone === 'error'
-      ? { border: '#FECACA', bg: '#FEF2F2', iconBg: '#FEE2E2', icon: '#DC2626', text: '#991B1B' }
+      ? {
+          border: colors.danger,
+          bg: colors.dangerBg,
+          iconBg: colors.iconBgDanger,
+          icon: colors.danger,
+          text: colors.danger,
+        }
       : tone === 'success'
-        ? { border: '#A7F3D0', bg: '#ECFDF5', iconBg: '#D1FAE5', icon: '#059669', text: '#065F46' }
-        : { border: '#BFDBFE', bg: '#EFF6FF', iconBg: '#DBEAFE', icon: BRAND_BLUE, text: '#1E3A8A' };
+        ? {
+            border: colors.success,
+            bg: colors.successBg,
+            iconBg: colors.successBg,
+            icon: colors.success,
+            text: colors.success,
+          }
+        : {
+            border: colors.selectedBorder,
+            bg: colors.selectedBg,
+            iconBg: colors.iconBg,
+            icon: BRAND_BLUE,
+            text: isDark ? colors.ink : '#1E3A8A',
+          };
 
   return (
     <View
@@ -242,4 +260,6 @@ export function SubBanner({
   );
 }
 
-export const SUB_PAGE_BG = BRAND_MIST;
+export function useSubPageBg() {
+  return useTheme().colors.canvas;
+}

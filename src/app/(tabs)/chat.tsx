@@ -45,7 +45,8 @@ import { MessageCard } from '@/components/chat/message-card';
 import { SuggestionChips } from '@/components/chat/suggestion-chips';
 import { WelcomeHero } from '@/components/chat/welcome-hero';
 import { useFloatingTabClearance } from '@/components/app-tab-bar';
-import { BRAND_BLUE, BRAND_HEADER_GRADIENT, BRAND_MIST } from '@/theme/brand';
+import { BRAND_BLUE, BRAND_HEADER_GRADIENT } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 const emptyUsage: ContextUsage = { usedTokens: 0, maxTokens: 2048, percent: 0, full: false };
@@ -55,6 +56,7 @@ const NEAR_BOTTOM_PX = 140;
 const MESSAGE_PAGE = 24;
 
 export default function Chat() {
+  const { colors } = useTheme();
   const db = useSQLiteContext();
   const list = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
@@ -409,7 +411,7 @@ export default function Chat() {
     conversations.find((c) => c.id === conversationId)?.title || 'Study chat';
 
   return (
-    <View className="flex-1" style={{ backgroundColor: BRAND_MIST }}>
+    <View className="flex-1 bg-canvas">
       <StatusBar style="light" />
       <View className="flex-1" style={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight : 0 }}>
         <LinearGradient
@@ -519,9 +521,9 @@ export default function Chat() {
         <View
           className="px-4 pt-3"
           style={{
-            backgroundColor: '#FFFFFF',
+            backgroundColor: colors.surface,
             borderTopWidth: 1,
-            borderTopColor: '#E8EEF4',
+            borderTopColor: colors.line,
             paddingBottom: keyboardHeight > 0 ? 10 : tabClearance,
           }}
         >
@@ -530,8 +532,8 @@ export default function Chat() {
             style={{
               borderRadius: 22,
               borderWidth: 1,
-              borderColor: '#E8EEF4',
-              backgroundColor: '#F8FAFC',
+              borderColor: colors.line,
+              backgroundColor: colors.surfaceMuted,
             }}
           >
             <TextInput
@@ -561,7 +563,7 @@ export default function Chat() {
                 }
               }}
               placeholder="Ask about a paper, topic, or question…"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.subtle}
               onContentSizeChange={(e) =>
                 setInputHeight(Math.min(132, Math.max(46, e.nativeEvent.contentSize.height)))
               }
@@ -574,13 +576,13 @@ export default function Chat() {
               className="mb-0.5 h-11 w-11 items-center justify-center"
               style={{
                 borderRadius: 16,
-                backgroundColor: input.trim() && !busy ? BRAND_BLUE : '#E2E8F0',
+                backgroundColor: input.trim() && !busy ? BRAND_BLUE : colors.controlOff,
               }}
             >
               <Ionicons
                 name={busy ? 'hourglass-outline' : 'arrow-up'}
                 size={21}
-                color={input.trim() && !busy ? 'white' : '#94A3B8'}
+                color={input.trim() && !busy ? 'white' : colors.subtle}
               />
             </Pressable>
           </View>
@@ -615,6 +617,7 @@ function ChatDrawer({
   onNew: () => void;
   onDelete: (id: string) => Promise<void>;
 }) {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [pendingDelete, setPendingDelete] = useState<ConversationSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -631,11 +634,11 @@ function ChatDrawer({
   }
 
   return (
-    <View className="absolute inset-0 z-50 flex-row" style={{ backgroundColor: 'rgba(11,20,36,0.35)' }}>
+    <View className="absolute inset-0 z-50 flex-row" style={{ backgroundColor: colors.overlay }}>
       <View
         className="h-full w-[82%] max-w-sm px-4 pb-6"
         style={{
-          backgroundColor: BRAND_MIST,
+          backgroundColor: colors.canvas,
           paddingTop: insets.top + 12,
         }}
       >
@@ -649,10 +652,10 @@ function ChatDrawer({
           <Pressable
             onPress={onClose}
             hitSlop={10}
-            className="h-10 w-10 items-center justify-center rounded-full bg-white"
-            style={{ borderWidth: 1, borderColor: '#E8EEF4' }}
+            className="h-10 w-10 items-center justify-center rounded-full bg-surface"
+            style={{ borderWidth: 1, borderColor: colors.line }}
           >
-            <Ionicons name="close" size={20} color="#0B1424" />
+            <Ionicons name="close" size={20} color={colors.ink} />
           </Pressable>
         </View>
         <Pressable
@@ -681,18 +684,18 @@ function ChatDrawer({
                 style={{
                   borderRadius: 20,
                   borderWidth: 1,
-                  borderColor: active ? '#BFDBFE' : '#E8EEF4',
-                  backgroundColor: active ? '#EFF6FF' : '#FFFFFF',
+                  borderColor: active ? colors.selectedBorder : colors.line,
+                  backgroundColor: active ? colors.selectedBg : colors.surface,
                 }}
               >
                 <Pressable onPress={() => onSelect(item.id)} className="min-w-0 flex-1 px-4 py-3.5">
                   <Text numberOfLines={1} className="font-bold text-ink" style={LABEL_TEXT_ANDROID}>
                     {item.title}
                   </Text>
-                  <Text numberOfLines={2} className="mt-1 text-xs leading-4 text-slate-500">
+                  <Text numberOfLines={2} className="mt-1 text-xs leading-4 text-muted">
                     {item.lastMessage || 'No messages yet'}
                   </Text>
-                  <Text className="mt-2 text-[10px] font-medium text-slate-400">
+                  <Text className="mt-2 text-[10px] font-medium text-subtle">
                     {item.messageCount} messages · {formatDate(item.updatedAt)}
                   </Text>
                 </Pressable>
@@ -700,9 +703,9 @@ function ChatDrawer({
                   onPress={() => setPendingDelete(item)}
                   accessibilityLabel={`Delete chat ${item.title}`}
                   className="items-center justify-center px-3.5"
-                  style={{ borderLeftWidth: 1, borderLeftColor: '#E8EEF4' }}
+                  style={{ borderLeftWidth: 1, borderLeftColor: colors.line }}
                 >
-                  <Ionicons name="trash-outline" size={18} color="#B4534B" />
+                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
                 </Pressable>
               </View>
             );
@@ -714,27 +717,27 @@ function ChatDrawer({
       {pendingDelete && (
         <View className="absolute inset-0 z-50 items-center justify-center bg-black/40 px-6">
           <View
-            className="w-full max-w-sm bg-white p-5"
+            className="w-full max-w-sm bg-surface p-5"
             style={{
               borderRadius: 24,
               borderWidth: 1,
-              borderColor: '#E8EEF4',
+              borderColor: colors.line,
             }}
           >
             <Text className="text-lg font-black text-ink">Delete this chat?</Text>
-            <Text className="mt-2 text-sm leading-5 text-slate-500">
+            <Text className="mt-2 text-sm leading-5 text-muted">
               “{pendingDelete.title || 'Untitled chat'}” will be removed permanently.
             </Text>
             <View className="mt-5 flex-row gap-2">
               <Pressable
                 disabled={deleting}
                 onPress={() => setPendingDelete(null)}
-                className="flex-1 bg-slate-100 py-3.5"
+                className="flex-1 py-3.5 bg-surface-muted"
                 style={{ borderRadius: 16 }}
               >
                 <Text
                   numberOfLines={1}
-                  className="font-bold text-slate-600"
+                  className="font-bold text-muted"
                   style={{ width: '100%', textAlign: 'center', flexShrink: 0 }}
                 >
                   Cancel
@@ -744,7 +747,7 @@ function ChatDrawer({
                 disabled={deleting}
                 onPress={() => void confirmDelete()}
                 className="flex-1 py-3.5"
-                style={{ borderRadius: 16, backgroundColor: '#B4534B' }}
+                style={{ borderRadius: 16, backgroundColor: colors.danger }}
               >
                 <Text
                   numberOfLines={1}
@@ -763,23 +766,24 @@ function ChatDrawer({
 }
 
 function ContextFullBanner({ onNewChat }: { onNewChat: () => void }) {
+  const { colors } = useTheme();
   return (
     <View
       className="px-4 py-3"
       style={{
         borderBottomWidth: 1,
-        borderBottomColor: '#FDE68A',
-        backgroundColor: '#FFFBEB',
+        borderBottomColor: colors.warning,
+        backgroundColor: colors.warningBg,
       }}
     >
-      <Text className="text-sm font-bold text-[#92400E]">This chat is getting long</Text>
-      <Text className="mt-1 text-xs leading-4 text-[#B45309]">
+      <Text className="text-sm font-bold" style={{ color: colors.warning }}>This chat is getting long</Text>
+      <Text className="mt-1 text-xs leading-4" style={{ color: colors.warning }}>
         Start a new chat to keep answers focused.
       </Text>
       <Pressable
         onPress={onNewChat}
         className="mt-2 self-start px-3 py-1.5"
-        style={{ borderRadius: 14, backgroundColor: '#92400E' }}
+        style={{ borderRadius: 14, backgroundColor: colors.warning }}
       >
         <Text className="text-xs font-bold text-white">Start new chat</Text>
       </Pressable>
@@ -796,12 +800,13 @@ function ModelGate({
   onDownload: () => void;
   message: string;
 }) {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const tabClearance = useFloatingTabClearance(8);
   const downloading = status.kind === 'downloading';
 
   return (
-    <View className="flex-1" style={{ backgroundColor: BRAND_MIST }}>
+    <View className="flex-1 bg-canvas">
       <StatusBar style="light" />
       <LinearGradient
         colors={[...BRAND_HEADER_GRADIENT]}
@@ -830,11 +835,11 @@ function ModelGate({
         style={{ paddingBottom: tabClearance }}
       >
         <View
-          className="w-full max-w-md bg-white px-5 py-6"
+          className="w-full max-w-md bg-surface px-5 py-6"
           style={{
             borderRadius: 24,
             borderWidth: 1,
-            borderColor: '#E8EEF4',
+            borderColor: colors.line,
           }}
         >
           <View
@@ -849,12 +854,12 @@ function ModelGate({
           >
             Download agent data
           </Text>
-          <Text className="mt-2 text-[14px] leading-6 text-slate-500">
+          <Text className="mt-2 text-[14px] leading-6 text-muted">
             Get the study assistant ready on this device. This only needs to happen once.
           </Text>
           {downloading ? (
             <View className="mt-6">
-              <View className="h-2 overflow-hidden rounded-full bg-[#E8EEF4]">
+              <View className="h-2 overflow-hidden rounded-full bg-line">
                 <View
                   className="h-full rounded-full"
                   style={{
@@ -863,11 +868,11 @@ function ModelGate({
                   }}
                 />
               </View>
-              <Text className="mt-3 text-sm text-slate-500">{status.label}</Text>
+              <Text className="mt-3 text-sm text-muted">{status.label}</Text>
             </View>
           ) : null}
           {!!message && !downloading ? (
-            <Text className="mt-5 text-sm text-[#B91C1C]">{message}</Text>
+            <Text className="mt-5 text-sm" style={{ color: colors.danger }}>{message}</Text>
           ) : null}
           <Pressable
             disabled={downloading}
@@ -875,7 +880,7 @@ function ModelGate({
             className="mt-6 py-4"
             style={{
               borderRadius: 18,
-              backgroundColor: downloading ? '#CBD5E1' : BRAND_BLUE,
+              backgroundColor: downloading ? colors.controlOff : BRAND_BLUE,
             }}
           >
             <Text

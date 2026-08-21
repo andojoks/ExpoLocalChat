@@ -23,7 +23,7 @@ export function AgentStatusBar({
         className="h-2 w-2 rounded-full"
         style={{ backgroundColor: busy ? '#F59E0B' : '#10B981' }}
       />
-      <Text numberOfLines={1} className="flex-1 text-xs font-medium text-slate-500">
+      <Text numberOfLines={1} className="flex-1 text-xs font-medium text-muted">
         {label}
       </Text>
     </View>

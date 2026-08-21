@@ -3,7 +3,6 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
-  SUB_PAGE_BG,
   SubBanner,
   SubInkHeader,
 } from '@/components/subscriptions/sub-chrome';
@@ -107,7 +106,7 @@ export default function PaperPeekScreen() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: SUB_PAGE_BG }}>
+    <View className="flex-1 bg-canvas">
       <SubInkHeader
         title={paperTitle}
         subtitle={`${total} question${total === 1 ? '' : 's'} · Tap to study`}
@@ -124,7 +123,7 @@ export default function PaperPeekScreen() {
         </View>
       ) : !docHtml || total === 0 ? (
         <View className="items-center px-6 py-16">
-          <Text className="text-center text-[13px] text-slate-500">No questions on this paper.</Text>
+          <Text className="text-center text-[13px] text-muted">No questions on this paper.</Text>
         </View>
       ) : (
         <QuestionHtmlView

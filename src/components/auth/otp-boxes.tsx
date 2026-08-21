@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
+import { useTheme } from '@/theme/ThemeProvider';
 
 export function OtpBoxes({
   value,
@@ -11,6 +12,7 @@ export function OtpBoxes({
   length?: number;
 }) {
   const refs = useRef<Array<TextInput | null>>([]);
+  const { colors } = useTheme();
   const digits = value.padEnd(length, ' ').slice(0, length).split('');
 
   useEffect(() => {
@@ -58,8 +60,8 @@ export function OtpBoxes({
           style={{
             borderRadius: 16,
             borderWidth: 1,
-            borderColor: '#E8EEF4',
-            backgroundColor: '#FFFFFF',
+            borderColor: colors.line,
+            backgroundColor: colors.surface,
           }}
         />
       ))}
@@ -99,10 +101,10 @@ export function ResendCooldown({
     >
       {left > 0 ? (
         <View className="flex-row items-center justify-center">
-          <Text className="text-sm font-semibold text-slate-400">Resend code in </Text>
+          <Text className="text-sm font-semibold text-subtle">Resend code in </Text>
           {/* Fixed slot so 60→9 doesn't reflow/flash the centered label. */}
           <Text
-            className="text-sm font-semibold text-slate-400"
+            className="text-sm font-semibold text-subtle"
             style={{
               minWidth: 44,
               textAlign: 'left',
@@ -113,7 +115,7 @@ export function ResendCooldown({
           </Text>
         </View>
       ) : (
-        <Text className={`text-sm font-semibold ${busy ? 'text-slate-400' : 'text-[#0548E8]'}`}>
+        <Text className={`text-sm font-semibold ${busy ? 'text-subtle' : 'text-[#0548E8]'}`}>
           {busy ? 'Sending…' : 'Resend code'}
         </Text>
       )}

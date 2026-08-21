@@ -13,7 +13,9 @@ import {
   getStudyRemindersEnabled,
   setRemindersEnabled,
 } from '@/notifications/study-reminders';
-import { BRAND_BLUE, BRAND_HEADER_GRADIENT, BRAND_MIST } from '@/theme/brand';
+import { BRAND_BLUE, BRAND_HEADER_GRADIENT } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
+import type { ThemePreference } from '@/theme/tokens';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 function PrefCard({
@@ -29,27 +31,30 @@ function PrefCard({
   value: boolean;
   onValueChange: (next: boolean) => void;
 }) {
+  const { colors } = useTheme();
   return (
     <View
-      className="flex-row items-center gap-3.5 rounded-[24px] bg-white py-4 pl-4 pr-3.5"
+      className="flex-row items-center gap-3.5 rounded-[24px] bg-surface py-4 pl-4 pr-3.5"
       style={{
         borderWidth: 1,
-        borderColor: '#E8EEF4',
-        shadowColor: '#0B1424',
+        borderColor: colors.line,
+        shadowColor: colors.ink,
         shadowOpacity: 0.05,
         shadowRadius: 16,
         shadowOffset: { width: 0, height: 6 },
         elevation: 2,
       }}
     >
-      <View className="h-11 w-11 items-center justify-center rounded-[14px] bg-[#EFF6FF]">
+      <View
+        className="h-11 w-11 items-center justify-center rounded-[14px]"
+        style={{ backgroundColor: colors.iconBg }}
+      >
         <Ionicons name={icon} size={20} color={BRAND_BLUE} />
       </View>
       <View className="min-w-0 flex-1 pr-3">
         <Text className="text-[15px] font-bold text-ink">{title}</Text>
-        <Text className="mt-1 text-[13px] leading-5 text-slate-500">{description}</Text>
+        <Text className="mt-1 text-[13px] leading-5 text-muted">{description}</Text>
       </View>
-      {/* Fixed slot: Android Switch remeasures on toggle if thumbColor / parent width flex. */}
       <View
         pointerEvents="box-none"
         style={{
@@ -63,12 +68,79 @@ function PrefCard({
         <Switch
           value={value}
           onValueChange={onValueChange}
-          trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
+          trackColor={{ false: colors.switchTrackOff, true: colors.switchTrackOn }}
           thumbColor="#FFFFFF"
-          ios_backgroundColor="#CBD5E1"
+          ios_backgroundColor={colors.switchTrackOff}
           style={Platform.OS === 'android' ? { width: 52, height: 32 } : undefined}
         />
       </View>
+    </View>
+  );
+}
+
+const DISPLAY_MODES: Array<{
+  id: ThemePreference;
+  label: string;
+  hint: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}> = [
+  { id: 'light', label: 'Light', hint: 'Always use light surfaces', icon: 'sunny-outline' },
+  { id: 'dark', label: 'Dark', hint: 'Always use dark surfaces', icon: 'moon-outline' },
+  {
+    id: 'system',
+    label: 'System default',
+    hint: 'Match the device appearance',
+    icon: 'phone-portrait-outline',
+  },
+];
+
+function DisplayModeCard() {
+  const { colors, preference, setPreference } = useTheme();
+  return (
+    <View
+      className="overflow-hidden rounded-[24px] bg-surface"
+      style={{
+        borderWidth: 1,
+        borderColor: colors.line,
+        shadowColor: colors.ink,
+        shadowOpacity: 0.05,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 2,
+      }}
+    >
+      {DISPLAY_MODES.map((mode, i) => {
+        const on = preference === mode.id;
+        const last = i === DISPLAY_MODES.length - 1;
+        return (
+          <Pressable
+            key={mode.id}
+            onPress={() => setPreference(mode.id)}
+            className={`flex-row items-center gap-3.5 px-4 py-3.5 ${last ? '' : 'border-b border-line'}`}
+          >
+            <View
+              className="h-10 w-10 items-center justify-center rounded-[14px]"
+              style={{ backgroundColor: colors.iconBg }}
+            >
+              <Ionicons name={mode.icon} size={18} color={BRAND_BLUE} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-[15px] font-semibold text-ink">{mode.label}</Text>
+              <Text className="mt-0.5 text-[12px] text-muted">{mode.hint}</Text>
+            </View>
+            <View
+              className="h-6 w-6 items-center justify-center rounded-full"
+              style={{
+                borderWidth: 2,
+                borderColor: on ? BRAND_BLUE : colors.line,
+                backgroundColor: on ? BRAND_BLUE : 'transparent',
+              }}
+            >
+              {on ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
+            </View>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -101,7 +173,7 @@ export default function PreferencesScreen() {
   }, []);
 
   return (
-    <View className="flex-1" style={{ backgroundColor: BRAND_MIST }}>
+    <View className="flex-1 bg-canvas">
       <StatusBar style="light" />
       <ScrollView
         className="flex-1"
@@ -147,7 +219,17 @@ export default function PreferencesScreen() {
 
         <View className="px-5 pt-6">
           <Text
-            className="mb-3 px-0.5 text-[11px] font-semibold uppercase text-[#94A3B8]"
+            className="mb-3 px-0.5 text-[11px] font-semibold uppercase text-subtle"
+            style={[LABEL_TEXT_ANDROID, { letterSpacing: 2.0 }]}
+          >
+            Display
+          </Text>
+          <View className="mb-7">
+            <DisplayModeCard />
+          </View>
+
+          <Text
+            className="mb-3 px-0.5 text-[11px] font-semibold uppercase text-subtle"
             style={[LABEL_TEXT_ANDROID, { letterSpacing: 2.0 }]}
           >
             Settings

@@ -2,6 +2,8 @@ import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { StreakSnapshot } from '@/study/streak-api';
 import { BRAND_BLUE, BRAND_GOLD } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
+import { cardChrome } from '@/theme/tokens';
 import { LABEL_TEXT_ANDROID } from '@/components/ui/app-text';
 
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -19,6 +21,7 @@ function labelsForLast7(): string[] {
 }
 
 export function HomeStreakSection({ streak }: { streak: StreakSnapshot | null }) {
+  const { colors } = useTheme();
   const count = streak?.currentStreakDays ?? 0;
   const days = streak?.last7DaysActive?.length === 7 ? streak.last7DaysActive : null;
   const labels = labelsForLast7();
@@ -27,7 +30,7 @@ export function HomeStreakSection({ streak }: { streak: StreakSnapshot | null })
     <View className="mb-8">
       <View className="mb-4 px-0.5">
         <Text
-          className="text-[11px] font-semibold uppercase text-[#94A3B8]"
+          className="text-[11px] font-semibold uppercase text-subtle"
           style={[LABEL_TEXT_ANDROID, { letterSpacing: 2.0 }]}
         >
           Progress
@@ -38,21 +41,13 @@ export function HomeStreakSection({ streak }: { streak: StreakSnapshot | null })
       </View>
 
       <View
-        className="rounded-[24px] bg-white px-4 py-4"
-        style={{
-          borderWidth: 1,
-          borderColor: '#E8EEF4',
-          shadowColor: '#0B1424',
-          shadowOpacity: 0.05,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: 2,
-        }}
+        className="rounded-[24px] bg-surface px-4 py-4"
+        style={cardChrome(colors)}
       >
         <View className="flex-row items-center gap-3.5">
           <View
             className="h-12 w-12 items-center justify-center rounded-[14px]"
-            style={{ backgroundColor: '#EFF6FF' }}
+            style={{ backgroundColor: colors.iconBg }}
           >
             <Ionicons name="flame-outline" size={22} color={BRAND_BLUE} />
           </View>
@@ -62,17 +57,17 @@ export function HomeStreakSection({ streak }: { streak: StreakSnapshot | null })
               style={[LABEL_TEXT_ANDROID, { letterSpacing: -0.6 }]}
             >
               {streak ? count : '—'}
-              <Text className="text-[13px] font-semibold text-slate-500">
+              <Text className="text-[13px] font-semibold text-muted">
                 {' '}
                 {count === 1 ? 'day' : 'days'}
               </Text>
             </Text>
-            <Text className="mt-0.5 text-[13px] text-slate-500">Keep it alive today</Text>
+            <Text className="mt-0.5 text-[13px] text-muted">Keep it alive today</Text>
           </View>
           <Ionicons name="flame" size={18} color={BRAND_GOLD} />
         </View>
 
-        <View className="mt-4 flex-row justify-between border-t border-[#E8EEF4] pt-4">
+        <View className="mt-4 flex-row justify-between border-t border-line pt-4">
           {(days || Array.from({ length: 7 }, () => false)).map((active, i) => {
             const isToday = i === 6;
             return (
@@ -83,9 +78,9 @@ export function HomeStreakSection({ streak }: { streak: StreakSnapshot | null })
                     active
                       ? { backgroundColor: BRAND_BLUE }
                       : {
-                          backgroundColor: '#F1F5F9',
+                          backgroundColor: colors.surfaceMuted,
                           borderWidth: isToday ? 1 : 0,
-                          borderColor: '#BFDBFE',
+                          borderColor: colors.selectedBorder,
                         }
                   }
                 >
@@ -93,7 +88,7 @@ export function HomeStreakSection({ streak }: { streak: StreakSnapshot | null })
                     className="text-[10px] font-bold"
                     style={[
                       LABEL_TEXT_ANDROID,
-                      { color: active ? '#FFFFFF' : '#94A3B8' },
+                      { color: active ? '#FFFFFF' : colors.subtle },
                     ]}
                   >
                     {labels[i]}

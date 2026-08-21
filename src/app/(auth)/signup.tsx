@@ -20,8 +20,11 @@ import {
 } from '@/auth/phone';
 import { isPasswordLongEnough, PASSWORD_MIN_LENGTH } from '@/auth/password-strength';
 import { setPendingAuth } from '@/auth/pending-auth';
+import { BRAND_BLUE } from '@/theme/brand';
+import { useTheme } from '@/theme/ThemeProvider';
 
 export default function SignupScreen() {
+  const { colors } = useTheme();
   const { signUp } = useAuth();
   const router = useRouter();
   const [name, setName] = useState('');
@@ -121,16 +124,17 @@ export default function SignupScreen() {
           style={{
             borderRadius: 6,
             borderWidth: 1,
-            borderColor: accepted ? '#0548E8' : '#E8EEF4',
-            backgroundColor: accepted ? '#0548E8' : '#FFFFFF',
+            borderColor: accepted ? BRAND_BLUE : colors.line,
+            backgroundColor: accepted ? BRAND_BLUE : colors.surface,
           }}
         >
           {accepted ? <Text className="text-[10px] font-bold text-white">✓</Text> : null}
         </View>
-        <Text className="flex-1 text-sm leading-5 text-slate-600">
+        <Text className="flex-1 text-sm leading-5 text-muted">
           I agree to the{' '}
           <Text
-            className="font-semibold text-[#0548E8]"
+            className="font-semibold"
+            style={{ color: BRAND_BLUE }}
             onPress={() => void Linking.openURL(getTermsUrl())}
           >
             Terms of Service

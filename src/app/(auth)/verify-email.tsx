@@ -54,7 +54,7 @@ export default function VerifyEmailScreen() {
           await resendOtp(email, 'EMAIL_VERIFY');
         }}
       />
-      <Text className="mt-2 text-center text-xs text-[#94A3B8]">
+      <Text className="mt-2 text-center text-xs text-subtle">
         Codes expire in 10 minutes. You can resend after 1 minute.
       </Text>
     </AuthScreenShell>

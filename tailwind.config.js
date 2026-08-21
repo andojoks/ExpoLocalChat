@@ -2,14 +2,30 @@
 module.exports = {
   content: ['./src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        ink: '#0B1424',
+        canvas: 'var(--color-canvas)',
+        surface: 'var(--color-surface)',
+        'surface-muted': 'var(--color-surface-muted)',
+        ink: 'var(--color-ink)',
+        muted: 'var(--color-muted)',
+        subtle: 'var(--color-subtle)',
+        line: 'var(--color-line)',
+        'icon-bg': 'var(--color-icon-bg)',
+        danger: 'var(--color-danger)',
+        'danger-bg': 'var(--color-danger-bg)',
+        success: 'var(--color-success)',
+        'success-bg': 'var(--color-success-bg)',
+        warning: 'var(--color-warning)',
+        'warning-bg': 'var(--color-warning-bg)',
+        selected: 'var(--color-selected)',
+        'selected-border': 'var(--color-selected-border)',
+        'control-off': 'var(--color-control-off)',
         forest: '#0548E8',
         mint: '#DBEAFE',
-        paper: '#F8FAFC',
-        line: '#E2E8F0',
+        paper: 'var(--color-surface-muted)',
         amber: '#38BDF8',
       },
       borderRadius: {

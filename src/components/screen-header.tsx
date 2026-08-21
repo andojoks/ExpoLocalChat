@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/theme/ThemeProvider';
 
 /**
  * Full-bleed screen header: white extends through the status-bar / notch area.
@@ -31,10 +32,14 @@ export function AppScreenHeader({
   right?: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const variant = size ?? (onBack ? 'nav' : 'large');
 
   return (
-    <View className="border-b border-line bg-white" style={{ paddingTop: insets.top }}>
+    <View
+      className="border-b border-line bg-surface"
+      style={{ paddingTop: insets.top, backgroundColor: colors.surface, borderBottomColor: colors.line }}
+    >
       {variant === 'large' ? (
         <View className="flex-row items-start gap-3 px-5 pb-3.5 pt-3">
           <View className="min-w-0 flex-1">
@@ -45,7 +50,7 @@ export function AppScreenHeader({
               {title}
             </Text>
             {subtitle ? (
-              <Text className="mt-1 text-sm leading-5 text-slate-500">{subtitle}</Text>
+              <Text className="mt-1 text-sm leading-5 text-muted">{subtitle}</Text>
             ) : null}
           </View>
           {right ? <View className="pt-1">{right}</View> : null}
@@ -58,7 +63,7 @@ export function AppScreenHeader({
               hitSlop={12}
               className="h-10 w-10 items-center justify-center bg-transparent"
             >
-              <Ionicons name="arrow-back" size={22} color="#0B1424" />
+              <Ionicons name="arrow-back" size={22} color={colors.ink} />
             </Pressable>
           ) : null}
           <View className="min-w-0 flex-1 pr-1">
@@ -70,7 +75,7 @@ export function AppScreenHeader({
               {title}
             </Text>
             {subtitle ? (
-              <Text className="text-xs leading-4 text-slate-500" numberOfLines={2}>
+              <Text className="text-xs leading-4 text-muted" numberOfLines={2}>
                 {subtitle}
               </Text>
             ) : null}
@@ -93,7 +98,7 @@ export function AppScreenHeader({
               >
                 <Text
                   className={`text-[15px] font-semibold ${
-                    on ? 'text-ink' : 'text-slate-400'
+                    on ? 'text-ink' : 'text-subtle'
                   }`}
                   style={{ lineHeight: 22, includeFontPadding: false }}
                 >

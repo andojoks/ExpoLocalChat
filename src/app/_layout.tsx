@@ -3,12 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { SplashScreen, Stack, useRouter, useSegments } from 'expo-router';
 import { setOptions as setSplashOptions } from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
 import { SQLiteProvider } from 'expo-sqlite';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { migrateDatabase } from '@/db/database';
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
+import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
+import { ThemedStatusBar } from '@/theme/ThemedStatusBar';
 import { isOnboardingComplete, peekOnboardingComplete } from '@/onboarding/storage';
 import { PrivacyScreenGuard } from '@/privacy/privacy-screen-guard';
 import {
@@ -25,6 +26,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 function AppGate() {
   const { status } = useAuth();
+  const { colors } = useTheme();
   const segments = useSegments();
   const router = useRouter();
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
@@ -94,13 +96,13 @@ function AppGate() {
   }, [destinationVisible]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: BRAND_BLUE }}>
-      <StatusBar style="auto" />
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+      <ThemedStatusBar />
       <Stack
         screenOptions={{
           headerShown: false,
           animation: 'none',
-          contentStyle: { backgroundColor: BRAND_BLUE },
+          contentStyle: { backgroundColor: colors.canvas },
         }}
       >
         <Stack.Protected guard={showOnboarding}>
@@ -120,15 +122,22 @@ function AppGate() {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: BRAND_BLUE }}>
-      <PrivacyScreenGuard>
-        <BottomSheetModalProvider>
-          <SQLiteProvider databaseName="questionbank.db" onInit={migrateDatabase}>
-            <AuthProvider>
-              <AppGate />
-            </AuthProvider>
-          </SQLiteProvider>
-        </BottomSheetModalProvider>
-      </PrivacyScreenGuard>
+      {/*
+        Theme must wrap BottomSheetModalProvider. Gorhom portals sheet
+        chrome (handle, backdrop, confirm) into that provider, so those
+        trees need theme context + NativeWind CSS vars.
+      */}
+      <ThemeProvider>
+        <PrivacyScreenGuard>
+          <BottomSheetModalProvider>
+            <SQLiteProvider databaseName="questionbank.db" onInit={migrateDatabase}>
+              <AuthProvider>
+                <AppGate />
+              </AuthProvider>
+            </SQLiteProvider>
+          </BottomSheetModalProvider>
+        </PrivacyScreenGuard>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }

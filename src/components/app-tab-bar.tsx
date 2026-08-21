@@ -2,6 +2,8 @@ import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTheme } from '@/theme/ThemeProvider';
+import { BRAND_BLUE } from '@/theme/brand';
 
 type TabRoute = {
   key: string;
@@ -100,6 +102,7 @@ export function useFloatingTabClearance(extra = 16) {
 export function AppTabBar({ state, descriptors, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
   const bottomInset = floatingTabSafeBottom(insets.bottom);
 
   return (
@@ -121,8 +124,8 @@ export function AppTabBar({ state, descriptors, navigation }: TabBarProps) {
       <View
         style={{
           borderRadius: 24,
-          backgroundColor: '#FFFFFF',
-          shadowColor: '#0B1424',
+          backgroundColor: colors.tabBar,
+          shadowColor: colors.ink,
           shadowOpacity: 0.16,
           shadowRadius: 14,
           shadowOffset: { width: 0, height: -5 },
@@ -136,10 +139,10 @@ export function AppTabBar({ state, descriptors, navigation }: TabBarProps) {
             paddingHorizontal: 6,
             paddingVertical: 6,
             borderRadius: 24,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: colors.tabBar,
             borderWidth: 1,
-            borderColor: '#E8EEF4',
-            shadowColor: '#0B1424',
+            borderColor: colors.tabBarBorder,
+            shadowColor: colors.ink,
             shadowOpacity: 0.1,
             shadowRadius: 18,
             shadowOffset: { width: 0, height: 8 },
@@ -193,13 +196,13 @@ export function AppTabBar({ state, descriptors, navigation }: TabBarProps) {
                   paddingVertical: 8,
                   paddingHorizontal: 4,
                   borderRadius: 18,
-                  backgroundColor: focused ? '#EFF6FF' : 'transparent',
+                  backgroundColor: focused ? colors.tabActiveBg : 'transparent',
                 }}
               >
                 <Ionicons
                   name={focused ? meta.iconActive : meta.icon}
                   size={22}
-                  color={focused ? '#0548E8' : '#94A3B8'}
+                  color={focused ? BRAND_BLUE : colors.tabInactive}
                 />
                 <Text
                   numberOfLines={1}
@@ -207,7 +210,7 @@ export function AppTabBar({ state, descriptors, navigation }: TabBarProps) {
                   minimumFontScale={0.85}
                   style={{
                     marginTop: 3,
-                    color: focused ? '#0B1424' : '#94A3B8',
+                    color: focused ? colors.ink : colors.tabInactive,
                     fontSize: 10,
                     lineHeight: 12,
                     fontWeight: focused ? '700' : '600',
