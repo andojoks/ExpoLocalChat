@@ -9,6 +9,7 @@ type Extra = {
   googleWebClientId?: string;
   googleIosClientId?: string;
   googleAndroidClientId?: string;
+  googleOAuthRedirectUrl?: string;
 };
 
 function extra(): Extra {
@@ -76,4 +77,29 @@ export function getGoogleClientIds() {
       extra().googleAndroidClientId ||
       '',
   };
+}
+
+/** Verified HTTPS App Link used as Google's Android redirect URI. */
+export function getGoogleOAuthRedirectUri() {
+  const fromEnv = process.env.EXPO_PUBLIC_GOOGLE_OAUTH_REDIRECT_URL?.trim();
+  const fromExtra = extra().googleOAuthRedirectUrl?.trim();
+  return (fromEnv || fromExtra || 'https://www.theexpertlearner.com/oauthredirect').replace(
+    /\/$/,
+    '',
+  );
+}
+
+/**
+ * URL Chrome Custom Tabs cannot render. After Google lands on the HTTPS App Link,
+ * the website bounces here so Android hands control back to the app.
+ * Must stay in sync with expertlearner-web `/oauthredirect`.
+ */
+export function getGoogleNativeReturnUri() {
+  return 'expertlearner://oauthredirect';
+}
+
+export function isConfiguredGoogleClientId(id: string | undefined): boolean {
+  if (!id?.trim()) return false;
+  if (/^YOUR_/i.test(id.trim())) return false;
+  return id.includes('.apps.googleusercontent.com');
 }

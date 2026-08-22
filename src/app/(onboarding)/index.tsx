@@ -8,7 +8,6 @@ import {
   View,
   type ViewToken,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
@@ -281,7 +280,6 @@ function ProgressDots({ count, index }: { count: number; index: number }) {
 }
 
 export default function OnboardingScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Slide>>(null);
   const [index, setIndex] = useState(0);
@@ -295,8 +293,7 @@ export default function OnboardingScreen() {
 
   const finish = useCallback(async () => {
     await setOnboardingComplete();
-    router.replace('/(auth)/welcome');
-  }, [router]);
+  }, []);
 
   const goNext = useCallback(() => {
     if (index >= SLIDES.length - 1) {
@@ -340,27 +337,6 @@ export default function OnboardingScreen() {
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
 
-      <View
-        style={{
-          position: 'absolute',
-          top: insets.top + 8,
-          right: 16,
-          zIndex: 20,
-        }}
-      >
-        <Pressable onPress={() => void finish()} hitSlop={12} style={{ padding: 8 }}>
-          <Text
-            style={{
-              fontFamily: 'Sora_600SemiBold',
-              fontSize: 14,
-              color: 'rgba(255,255,255,0.8)',
-            }}
-          >
-            Skip
-          </Text>
-        </Pressable>
-      </View>
-
       <FlatList
         ref={listRef}
         data={SLIDES}
@@ -392,49 +368,71 @@ export default function OnboardingScreen() {
         }
       />
 
-      <View
-        style={{
-          paddingHorizontal: H_PAD,
-          paddingTop: 12,
-          paddingBottom: bottomPad,
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-        }}
-      >
-        <ProgressDots count={SLIDES.length} index={index} />
-        <Animated.View style={[{ marginTop: 16 }, ctaStyle]}>
-          <Pressable
-            onPressIn={() => {
-              ctaScale.value = withSpring(0.97, { damping: 18 });
-            }}
-            onPressOut={() => {
-              ctaScale.value = withSpring(1, { damping: 14 });
-            }}
-            onPress={goNext}
-            style={{
-              borderRadius: 16,
-              backgroundColor: '#FFFFFF',
-              paddingVertical: 16,
-            }}
-          >
+      <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}>
+        <View
+          style={{
+            position: 'absolute',
+            top: insets.top + 8,
+            right: 16,
+          }}
+        >
+          <Pressable onPress={() => void finish()} hitSlop={12} style={{ padding: 8 }}>
             <Text
-              numberOfLines={1}
               style={{
-                fontFamily: 'Sora_700Bold',
-                fontSize: 16,
-                lineHeight: 22,
-                color: BRAND_INK,
-                width: '100%',
-                textAlign: 'center',
-                flexShrink: 0,
+                fontFamily: 'Sora_600SemiBold',
+                fontSize: 14,
+                color: 'rgba(255,255,255,0.8)',
               }}
             >
-              {last ? 'Get started' : 'Continue'}
+              Skip
             </Text>
           </Pressable>
-        </Animated.View>
+        </View>
+
+        <View
+          style={{
+            paddingHorizontal: H_PAD,
+            paddingTop: 12,
+            paddingBottom: bottomPad,
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        >
+          <ProgressDots count={SLIDES.length} index={index} />
+          <Animated.View style={[{ marginTop: 16 }, ctaStyle]}>
+            <Pressable
+              onPressIn={() => {
+                ctaScale.value = withSpring(0.97, { damping: 18 });
+              }}
+              onPressOut={() => {
+                ctaScale.value = withSpring(1, { damping: 14 });
+              }}
+              onPress={goNext}
+              style={{
+                borderRadius: 16,
+                backgroundColor: '#FFFFFF',
+                paddingVertical: 16,
+              }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{
+                  fontFamily: 'Sora_700Bold',
+                  fontSize: 16,
+                  lineHeight: 22,
+                  color: BRAND_INK,
+                  width: '100%',
+                  textAlign: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {last ? 'Get started' : 'Continue'}
+              </Text>
+            </Pressable>
+          </Animated.View>
+        </View>
       </View>
     </View>
   );

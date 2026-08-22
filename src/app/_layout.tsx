@@ -10,7 +10,7 @@ import { migrateDatabase } from '@/db/database';
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { ThemedStatusBar } from '@/theme/ThemedStatusBar';
-import { isOnboardingComplete, peekOnboardingComplete } from '@/onboarding/storage';
+import { isOnboardingComplete, peekOnboardingComplete, subscribeOnboardingComplete } from '@/onboarding/storage';
 import { PrivacyScreenGuard } from '@/privacy/privacy-screen-guard';
 import {
   getPendingAuth,
@@ -51,6 +51,8 @@ function AppGate() {
     };
   }, []);
 
+  useEffect(() => subscribeOnboardingComplete(() => setOnboardingDone(true)), []);
+
   const ready = status !== 'loading' && onboardingDone !== null && pendingAuth !== undefined;
   const onboardingComplete = onboardingDone === true || peekOnboardingComplete();
 
@@ -61,6 +63,7 @@ function AppGate() {
 
   const root = (segments as string[])[0];
   const destinationVisible =
+    root === 'oauthredirect' ||
     (showOnboarding && root === '(onboarding)') ||
     (showAuth && root === '(auth)') ||
     (showApp && root === '(tabs)');
@@ -105,6 +108,7 @@ function AppGate() {
           contentStyle: { backgroundColor: colors.canvas },
         }}
       >
+        <Stack.Screen name="oauthredirect" />
         <Stack.Protected guard={showOnboarding}>
           <Stack.Screen name="(onboarding)" />
         </Stack.Protected>

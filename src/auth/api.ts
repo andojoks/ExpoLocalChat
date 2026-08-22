@@ -145,6 +145,18 @@ export function googleSignIn(idToken: string, device: DeviceAuthOpts) {
   });
 }
 
+export function googleSignInWithAuthorizationCode(
+  input: { code: string; codeVerifier: string; redirectUri: string },
+  device: DeviceAuthOpts,
+) {
+  return postAuth<AuthTokens>('/api/mobile/auth/google', {
+    code: input.code,
+    codeVerifier: input.codeVerifier,
+    redirectUri: input.redirectUri,
+    ...withDeviceFields(device),
+  });
+}
+
 export async function fetchMe(accessToken: string) {
   const res = await fetch(`${getApiBaseUrl()}/api/mobile/auth/me`, {
     headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },

@@ -21,7 +21,21 @@
       },
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "pan",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "www.theexpertlearner.com",
+              "pathPrefix": "/oauthredirect"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "output": "static",
@@ -83,17 +97,15 @@
     "owner": "andojoks",
     "extra": {
       "router": {},
-      "apiBaseUrl": "https://www.theexpertlearner.com",
-      "aboutUrl": "https://www.theexpertlearner.com/about",
-      "privacyUrl": "https://www.theexpertlearner.com/privacy",
-      "termsUrl": "https://www.theexpertlearner.com/terms",
-      "shareUrl": "https://www.theexpertlearner.com",
-      "googleWebClientId": "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com",
+      "apiBaseUrl": "http://192.168.1.120:3000",
+      "aboutUrl": "http://192.168.1.120:3000/about",
+      "privacyUrl": "http://192.168.1.120:3000/privacy",
+      "termsUrl": "http://192.168.1.120:3000/terms",
+      "shareUrl": "http://192.168.1.120:3000",
+      "googleWebClientId": "462865214843-bjvlmldsfdl0tgbgliobo23agetva2ii.apps.googleusercontent.com",
       "googleIosClientId": "YOUR_GOOGLE_IOS_CLIENT_ID.apps.googleusercontent.com",
-      "googleAndroidClientId": "YOUR_GOOGLE_ANDROID_CLIENT_ID.apps.googleusercontent.com",
-      "eas": {
-        "projectId": "1b7f104e-9480-4fbd-9636-0fe0d088ed5d"
-      }
+      "googleAndroidClientId": "462865214843-64850e68gmetfnfdb75qjgrgsrak43no.apps.googleusercontent.com",
+      "googleOAuthRedirectUrl": "https://www.theexpertlearner.com/oauthredirect"
     }
   }
 }

@@ -48,6 +48,11 @@ type AuthContextValue = {
   verifyPasswordResetOtp: (identifier: string, code: string) => Promise<void>;
   resetPassword: (identifier: string, code: string, newPassword: string) => Promise<void>;
   signInWithGoogle: (idToken: string) => Promise<void>;
+  signInWithGoogleAuthorization: (input: {
+    code: string;
+    codeVerifier: string;
+    redirectUri: string;
+  }) => Promise<void>;
   updateProfile: (patch: { name?: string | null; phone?: string | null }) => Promise<void>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
@@ -358,6 +363,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applySession],
   );
 
+  const signInWithGoogleAuthorization = useCallback(
+    async (input: { code: string; codeVerifier: string; redirectUri: string }) => {
+      try {
+        const device = await withDeviceAuth();
+        const pair = await authApi.googleSignInWithAuthorizationCode(input, device);
+        const next = await applySession(pair);
+        setUser(next);
+        setStatus('authenticated');
+      } catch (e) {
+        rethrowAuthError(e);
+      }
+    },
+    [applySession],
+  );
+
   const updateProfile = useCallback(async (patch: { name?: string | null; phone?: string | null }) => {
     const access = await getAccessToken();
     if (!access) throw new Error('Not signed in');
@@ -399,6 +419,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyPasswordResetOtp,
       resetPassword,
       signInWithGoogle,
+      signInWithGoogleAuthorization,
       updateProfile,
       signOut,
       refreshSession,
@@ -414,6 +435,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyPasswordResetOtp,
       resetPassword,
       signInWithGoogle,
+      signInWithGoogleAuthorization,
       updateProfile,
       signOut,
       refreshSession,
